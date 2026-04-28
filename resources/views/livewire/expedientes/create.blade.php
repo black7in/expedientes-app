@@ -123,13 +123,14 @@
                                 <span class="text-[11px] text-slate-400 font-mono">{{ $persona['ci_nit'] }}</span>
                             </button>
                         @empty
-                            <div class="px-3 py-3 text-xs text-center text-slate-400">
-                                Sin resultados —
-                                <a href="{{ route('personas.create') }}" wire:navigate
-                                   class="font-medium hover:underline" style="color: var(--color-primary)">
-                                    Registrar nueva persona
-                                </a>
-                            </div>
+                            <button type="button" wire:click="abrirModalPersona"
+                                    class="w-full px-3 py-2.5 text-xs flex items-center justify-center gap-1.5 hover:bg-slate-50 transition-colors"
+                                    style="color: var(--color-primary)">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Nueva persona
+                            </button>
                         @endforelse
                     </div>
                 @endif
@@ -180,6 +181,8 @@
             @endif
         </div>
 
+        @include('livewire.expedientes._modal_nueva_persona')
+
         {{-- Acciones --}}
         <div class="flex items-center gap-2 justify-end">
             <a href="{{ route('expedientes.index') }}" wire:navigate
@@ -188,8 +191,9 @@
             </a>
             <button type="submit"
                     wire:loading.attr="disabled"
-                    class="h-8 px-4 bg-slate-900 text-white text-xs font-medium rounded-md hover:bg-slate-800 transition-colors
-                           disabled:opacity-50 inline-flex items-center gap-1.5">
+                    class="h-8 px-4 text-white text-xs font-medium rounded-md hover:opacity-90 transition-opacity
+                           disabled:opacity-50 inline-flex items-center gap-1.5"
+                    style="background-color: var(--color-primary)">
                 <span wire:loading.remove>Crear expediente</span>
                 <span wire:loading class="flex items-center gap-1.5">
                     <svg class="animate-spin w-3 h-3" fill="none" viewBox="0 0 24 24">

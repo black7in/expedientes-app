@@ -29,6 +29,14 @@ class Create extends Component
     public array  $resultadosPersona = [];
     public bool   $mostrarResultados = false;
 
+    // Modal nueva persona
+    public bool   $showModalPersona  = false;
+    public string $mpNombre          = '';
+    public string $mpCiNit           = '';
+    public string $mpTipo            = 'natural';
+    public string $mpTelefono        = '';
+    public string $mpCorreo          = '';
+
     public function mount(): void
     {
         $this->fecha_inicio = now()->format('Y-m-d');
@@ -77,6 +85,58 @@ class Create extends Component
         $this->buscarPersona    = '';
         $this->resultadosPersona = [];
         $this->mostrarResultados = false;
+    }
+
+    public function abrirModalPersona(): void
+    {
+        $this->showModalPersona = true;
+        $this->mpNombre   = $this->buscarPersona; // pre-rellena con lo que buscó
+        $this->mpCiNit    = '';
+        $this->mpTipo     = 'natural';
+        $this->mpTelefono = '';
+        $this->mpCorreo   = '';
+        $this->mostrarResultados = false;
+        $this->resetErrorBag();
+    }
+
+    public function cerrarModalPersona(): void
+    {
+        $this->showModalPersona = false;
+        $this->resetErrorBag();
+    }
+
+    public function crearYAgregarPersona(): void
+    {
+        $this->validate([
+            'mpNombre' => 'required|min:3|max:255',
+            'mpCiNit'  => 'required|max:50',
+            'mpTipo'   => 'required|in:natural,juridica',
+            'mpCorreo' => 'nullable|email|max:255',
+        ], [], [
+            'mpNombre' => 'nombre completo',
+            'mpCiNit'  => 'CI / NIT',
+            'mpTipo'   => 'tipo de persona',
+            'mpCorreo' => 'correo',
+        ]);
+
+        $persona = Persona::create([
+            'nombre_completo' => $this->mpNombre,
+            'ci_nit'          => $this->mpCiNit,
+            'tipo_persona'    => $this->mpTipo,
+            'telefono'        => $this->mpTelefono ?: null,
+            'correo'          => $this->mpCorreo ?: null,
+        ]);
+
+        $this->partes[] = [
+            'persona_id'      => $persona->id,
+            'nombre_completo' => $persona->nombre_completo,
+            'ci_nit'          => $persona->ci_nit,
+            'rol_procesal'    => 'demandante',
+            'es_cliente'      => false,
+        ];
+
+        $this->showModalPersona = false;
+        $this->buscarPersona    = '';
     }
 
     public function removerParte(int $index): void

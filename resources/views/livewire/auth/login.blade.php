@@ -75,9 +75,10 @@
         <button
             type="submit"
             wire:loading.attr="disabled"
-            class="w-full h-9 bg-slate-900 hover:bg-slate-800 text-white text-sm font-medium rounded-md
-                   transition-colors focus:outline-none focus:ring-2 focus:ring-slate-900/30 focus:ring-offset-1
+            class="w-full h-9 text-white text-sm font-medium rounded-md
+                   transition-opacity hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-1
                    disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2 mt-2"
+            style="background-color: var(--color-primary)"
         >
             <span wire:loading.remove>Ingresar</span>
             <span wire:loading class="flex items-center gap-2">

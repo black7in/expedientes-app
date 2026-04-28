@@ -146,13 +146,14 @@
                                 <span class="text-[11px] font-mono" style="color: var(--color-muted)">{{ $persona['ci_nit'] }}</span>
                             </button>
                         @empty
-                            <div class="px-3 py-3 text-xs text-center" style="color: var(--color-subtle)">
-                                Sin resultados —
-                                <a href="{{ route('personas.create') }}" wire:navigate
-                                   class="font-medium hover:underline" style="color: var(--color-primary)">
-                                    Registrar nueva persona
-                                </a>
-                            </div>
+                            <button type="button" wire:click="abrirModalPersona"
+                                    class="w-full px-3 py-2.5 text-xs flex items-center justify-center gap-1.5 hover:bg-slate-50 transition-colors"
+                                    style="color: var(--color-primary)">
+                                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                                </svg>
+                                Nueva persona
+                            </button>
                         @endforelse
                     </div>
                 @endif
@@ -204,6 +205,8 @@
                 </div>
             @endif
         </div>
+
+        @include('livewire.expedientes._modal_nueva_persona')
 
         {{-- Acciones --}}
         <div class="flex items-center gap-2 justify-end">
