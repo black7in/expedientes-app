@@ -1,0 +1,78 @@
+services:
+
+  # ─── PHP-FPM + Laravel ───────────────────────────────────────────────────────
+  app:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: expedientes_app
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    environment:
+      - PHP_OPCACHE_ENABLE=0   # desactivar en dev para hot-reload
+    networks:
+      - juridico_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+
+  # ─── Nginx ───────────────────────────────────────────────────────────────────
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: expedientes_nginx
+    restart: unless-stopped
+    ports:
+      - "8080:80"
+    volumes:
+      - .:/var/www/html
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf
+    networks:
+      - juridico_net
+    depends_on:
+      - app
+
+  # ─── PostgreSQL 16 + pgvector ─────────────────────────────────────────────────
+  postgres:
+    image: pgvector/pgvector:pg16
+    container_name: expedientes_postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: expedientes_juridicos
+      POSTGRES_USER: laravel
+      POSTGRES_PASSWORD: secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - juridico_net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U laravel -d expedientes_juridicos"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # ─── Redis ───────────────────────────────────────────────────────────────────
+  redis:
+    image: redis:7-alpine
+    container_name: expedientes_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - juridico_net
+
+networks:
+  juridico_net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
