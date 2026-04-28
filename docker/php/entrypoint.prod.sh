@@ -1,6 +1,9 @@
 #!/bin/sh
 set -e
 
+echo "→ Sincronizando assets compilados..."
+cp -rf /tmp/public-build /var/www/html/public/build
+
 echo "→ Ejecutando migraciones..."
 php artisan migrate --force
 

@@ -28,8 +28,8 @@ WORKDIR /var/www/html
 # Copiar código fuente
 COPY . .
 
-# Copiar assets compilados desde el stage frontend
-COPY --from=frontend /app/public/build ./public/build
+# Guardar assets compilados en /tmp para que el entrypoint los copie al volumen
+COPY --from=frontend /app/public/build /tmp/public-build
 
 # Instalar dependencias PHP sin dev
 RUN composer install --no-interaction --optimize-autoloader --no-dev
