@@ -43,6 +43,7 @@
                           style="color: var(--color-sidebar-border)">Admin</span>
                 </div>
                 <x-nav-item route="usuarios.index" icon="users" path-prefix="/usuarios">Usuarios</x-nav-item>
+                <x-nav-item route="config.juzgados" icon="building" path-prefix="/configuracion/juzgados">Juzgados</x-nav-item>
                 <x-nav-item route="config.tipos-proceso" icon="settings" path-prefix="/configuracion">Configuración</x-nav-item>
             @endif
         </nav>

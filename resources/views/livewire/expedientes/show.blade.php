@@ -246,8 +246,16 @@
 
             {{-- Partes procesales --}}
             <div class="bg-white rounded-lg" style="border: 1px solid var(--color-border)">
-                <div class="px-4 py-3" style="border-bottom: 1px solid var(--color-border)">
+                <div class="flex items-center justify-between px-4 py-3" style="border-bottom: 1px solid var(--color-border)">
                     <h3 class="text-xs font-semibold text-slate-700 uppercase tracking-wide">Partes procesales</h3>
+                    <button wire:click="abrirModalParte" type="button"
+                            class="inline-flex items-center gap-1 text-[11px] font-medium hover:opacity-75 transition-opacity"
+                            style="color: var(--color-primary)">
+                        <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                        </svg>
+                        Agregar
+                    </button>
                 </div>
                 <div class="px-4 py-3 space-y-3">
                     @forelse($expediente->partes as $parte)
@@ -352,5 +360,113 @@
 
         </div>
     </div>
+
+    {{-- Modal agregar parte --}}
+    @if($showModalParte)
+        <div class="fixed inset-0 z-50 flex items-center justify-center p-4"
+             style="background-color: rgba(0,0,0,0.4)">
+            <div class="bg-white rounded-xl shadow-xl w-full max-w-md"
+                 style="border: 1px solid var(--color-border)">
+
+                {{-- Header modal --}}
+                <div class="flex items-center justify-between px-5 py-4" style="border-bottom: 1px solid var(--color-border)">
+                    <h3 class="text-sm font-semibold" style="color: var(--color-text)">Agregar parte procesal</h3>
+                    <button wire:click="cerrarModalParte" type="button"
+                            class="p-1 rounded-md hover:bg-slate-100 transition-colors"
+                            style="color: var(--color-muted)">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+
+                {{-- Cuerpo modal --}}
+                <div class="px-5 py-4 space-y-4">
+
+                    {{-- Búsqueda persona --}}
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium" style="color: var(--color-text)">Persona <span class="text-red-500">*</span></label>
+
+                        @if($personaSeleccionadaId)
+                            <div class="flex items-center justify-between px-3 py-2 rounded-md"
+                                 style="background-color: var(--color-surface); border: 1px solid var(--color-border)">
+                                <span class="text-xs font-medium" style="color: var(--color-text)">{{ $personaSeleccionadaNombre }}</span>
+                                <button wire:click="$set('personaSeleccionadaId', '')" type="button"
+                                        class="text-[11px] hover:underline" style="color: var(--color-muted)">Cambiar</button>
+                            </div>
+                        @else
+                            <div class="relative">
+                                <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 pointer-events-none"
+                                     style="color: var(--color-muted)" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/>
+                                </svg>
+                                <input wire:model.live.debounce.300ms="buscarPersonaModal"
+                                       type="text"
+                                       placeholder="Buscar por nombre o CI/NIT..."
+                                       class="w-full h-8 pl-9 pr-3 text-xs rounded-md"
+                                       style="border: 1px solid var(--color-border); outline: none;">
+                            </div>
+
+                            @if(count($resultadosModal) > 0)
+                                <div class="rounded-md overflow-hidden" style="border: 1px solid var(--color-border)">
+                                    @foreach($resultadosModal as $p)
+                                        <button type="button"
+                                                wire:click="seleccionarPersonaModal('{{ $p['id'] }}', '{{ addslashes($p['nombre_completo']) }}')"
+                                                class="w-full text-left px-3 py-2 hover:bg-slate-50 transition-colors flex items-center justify-between gap-2 {{ !$loop->last ? 'border-b' : '' }}"
+                                                style="{{ !$loop->last ? 'border-color: var(--color-border)' : '' }}">
+                                            <span class="text-xs font-medium" style="color: var(--color-text)">{{ $p['nombre_completo'] }}</span>
+                                            <span class="text-[11px] font-mono" style="color: var(--color-muted)">{{ $p['ci_nit'] }}</span>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @elseif(strlen($buscarPersonaModal) >= 2)
+                                <p class="text-xs" style="color: var(--color-muted)">
+                                    Sin resultados —
+                                    <a href="{{ route('personas.create') }}" wire:navigate
+                                       class="font-medium hover:underline" style="color: var(--color-primary)">
+                                        Registrar nueva persona
+                                    </a>
+                                </p>
+                            @endif
+                        @endif
+                        @error('personaSeleccionadaId') <p class="text-xs text-red-600">{{ $message }}</p> @enderror
+                    </div>
+
+                    {{-- Rol procesal --}}
+                    <div class="space-y-1.5">
+                        <label class="text-xs font-medium" style="color: var(--color-text)">Rol procesal <span class="text-red-500">*</span></label>
+                        <select wire:model="rolProcesal"
+                                class="w-full h-8 px-3 text-xs rounded-md bg-white"
+                                style="border: 1px solid var(--color-border); outline: none;">
+                            <option value="demandante">Demandante</option>
+                            <option value="demandado">Demandado</option>
+                        </select>
+                    </div>
+
+                    {{-- Es cliente --}}
+                    <label class="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" wire:model="esCliente" class="w-3.5 h-3.5 rounded accent-emerald-600">
+                        <span class="text-xs" style="color: var(--color-text)">Es cliente del estudio</span>
+                    </label>
+                </div>
+
+                {{-- Footer modal --}}
+                <div class="flex items-center justify-end gap-2 px-5 py-4" style="border-top: 1px solid var(--color-border)">
+                    <button wire:click="cerrarModalParte" type="button"
+                            class="h-8 px-4 text-xs rounded-md hover:bg-slate-50 transition-colors"
+                            style="border: 1px solid var(--color-border); color: var(--color-text-secondary)">
+                        Cancelar
+                    </button>
+                    <button wire:click="agregarParte" type="button"
+                            wire:loading.attr="disabled"
+                            class="h-8 px-4 text-xs font-medium text-white rounded-md hover:opacity-90 transition-opacity disabled:opacity-50"
+                            style="background-color: var(--color-primary)">
+                        <span wire:loading.remove wire:target="agregarParte">Agregar parte</span>
+                        <span wire:loading wire:target="agregarParte">Guardando...</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    @endif
 
 </div>

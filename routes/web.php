@@ -58,6 +58,7 @@ Route::middleware(['auth'])->group(function () {
 
         Route::prefix('configuracion')->name('config.')->group(function () {
             Route::get('/tipos-proceso', \App\Livewire\Config\TiposProceso::class)->name('tipos-proceso');
+            Route::get('/juzgados', \App\Livewire\Config\Juzgados::class)->name('juzgados');
         });
     });
 });
