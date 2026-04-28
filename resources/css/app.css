@@ -4,8 +4,37 @@
 @source '../../storage/framework/views/*.php';
 @source '../**/*.blade.php';
 @source '../**/*.js';
+@source '../../app/**/*.php';
+
+/* ─────────────────────────────────────────────────────────────────────────────
+   TEMA — Para cambiar el diseño completo editá solo este bloque
+   ───────────────────────────────────────────────────────────────────────────── */
+:root {
+    /* Sidebar */
+    --color-sidebar:             #052e16;
+    --color-sidebar-active:      #14532d;
+    --color-sidebar-border:      #166534;
+    --color-sidebar-text:        #86efac;
+    --color-sidebar-text-hover:  #dcfce7;
+    --color-sidebar-text-active: #ffffff;
+
+    /* Acento (emerald) */
+    --color-primary:             #059669;
+    --color-primary-hover:       #047857;
+    --color-primary-light:       #d1fae5;
+    --color-primary-text:        #065f46;
+
+    /* Página */
+    --color-page-bg:             #f9fafb;
+    --color-card:                #ffffff;
+    --color-border:              #e5e7eb;
+    --color-border-strong:       #d1d5db;
+    --color-muted:               #6b7280;
+    --color-subtle:              #9ca3af;
+    --color-text:                #111827;
+    --color-text-secondary:      #374151;
+}
 
 @theme {
-    --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif, 'Apple Color Emoji', 'Segoe UI Emoji',
-        'Segoe UI Symbol', 'Noto Color Emoji';
+    --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
 }

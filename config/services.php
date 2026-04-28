@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'ai' => [
+        'url' => env('AI_SERVICE_URL', 'http://expedientes-ai:8000'),
+    ],
+
 ];

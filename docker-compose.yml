@@ -12,7 +12,7 @@ services:
       - .:/var/www/html
       - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
     environment:
-      - PHP_OPCACHE_ENABLE=0   # desactivar en dev para hot-reload
+      - PHP_OPCACHE_ENABLE=0
     networks:
       - juridico_net
     depends_on:
@@ -36,6 +36,20 @@ services:
     depends_on:
       - app
 
+  # ─── Vite (assets + HMR) ─────────────────────────────────────────────────────
+  vite:
+    image: node:20-alpine
+    container_name: expedientes_vite
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+    ports:
+      - "5173:5173"
+    command: sh -c "npm install && npm run dev"
+    networks:
+      - juridico_net
+
   # ─── PostgreSQL 16 + pgvector ─────────────────────────────────────────────────
   postgres:
     image: pgvector/pgvector:pg16
@@ -56,6 +70,51 @@ services:
       interval: 5s
       timeout: 5s
       retries: 5
+
+  # ─── FastAPI — Servicio IA ───────────────────────────────────────────────────
+  ai:
+    build:
+      context: ../expedientes-ai
+      dockerfile: Dockerfile
+    container_name: expedientes_ai
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://laravel:secret@postgres:5432/expedientes_juridicos
+      STORAGE_PATH: /storage/documentos
+    volumes:
+      # Comparte el storage de Laravel para leer los archivos subidos
+      - ./storage/app/documentos:/storage/documentos:ro
+      # Hot reload del código Python en desarrollo
+      - ../expedientes-ai/app:/app/app
+    ports:
+      - "8001:8000"
+    networks:
+      - juridico_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  # ─── Queue Worker (Laravel) ───────────────────────────────────────────────────
+  queue:
+    build:
+      context: .
+      dockerfile: docker/php/Dockerfile
+    container_name: expedientes_queue
+    restart: unless-stopped
+    working_dir: /var/www/html
+    volumes:
+      - .:/var/www/html
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    command: php artisan queue:work redis --sleep=3 --tries=3 --max-time=3600
+    networks:
+      - juridico_net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      ai:
+        condition: service_started
 
   # ─── Redis ───────────────────────────────────────────────────────────────────
   redis:
