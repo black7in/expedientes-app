@@ -2,6 +2,7 @@
 set -e
 
 echo "→ Sincronizando assets compilados..."
+rm -rf /var/www/html/public/build
 cp -rf /tmp/public-build /var/www/html/public/build
 
 echo "→ Ejecutando migraciones..."
