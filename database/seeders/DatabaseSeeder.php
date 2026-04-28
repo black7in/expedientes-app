@@ -12,6 +12,7 @@ class DatabaseSeeder extends Seeder
             TiposProcesoSeeder::class,
             JuzgadosSeeder::class,
             AdminUserSeeder::class,
+            DemoSeeder::class,
         ]);
     }
 }
