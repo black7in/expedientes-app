@@ -11,6 +11,8 @@ class Actuacion extends Model
 {
     use HasFactory, HasUuids;
 
+    protected $table = 'actuaciones';
+
     protected $fillable = [
         'expediente_id',
         'usuario_id',
