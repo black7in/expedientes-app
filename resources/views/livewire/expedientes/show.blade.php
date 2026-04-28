@@ -444,10 +444,17 @@
                     </div>
 
                     {{-- Es cliente --}}
-                    <label class="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" wire:model="esCliente" class="w-3.5 h-3.5 rounded accent-emerald-600">
-                        <span class="text-xs" style="color: var(--color-text)">Es cliente del estudio</span>
-                    </label>
+                    <div class="space-y-1">
+                        <label class="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" wire:model="esCliente" class="w-3.5 h-3.5 rounded accent-emerald-600">
+                            <span class="text-xs" style="color: var(--color-text)">Es cliente del estudio</span>
+                        </label>
+                        @if($expediente->partes->where('es_cliente', true)->count() > 0)
+                            <p class="text-[11px]" style="color: var(--color-muted)">
+                                Ya hay un cliente marcado. Marcar esta parte reemplazará al anterior.
+                            </p>
+                        @endif
+                    </div>
                 </div>
 
                 {{-- Footer modal --}}

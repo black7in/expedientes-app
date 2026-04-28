@@ -126,6 +126,10 @@ class Show extends Component
             return;
         }
 
+        if ($this->esCliente) {
+            $this->expediente->partes()->update(['es_cliente' => false]);
+        }
+
         $this->expediente->partes()->create([
             'persona_id'   => $this->personaSeleccionadaId,
             'rol_procesal' => $this->rolProcesal,
