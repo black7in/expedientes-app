@@ -138,9 +138,10 @@
 
             {{-- Lista de partes --}}
             @if(count($partes) > 0)
-                <div class="border border-slate-200 rounded-md divide-y divide-slate-100 overflow-hidden">
+                <div class="rounded-md overflow-hidden" style="border: 1px solid var(--color-border)">
                     @foreach($partes as $i => $parte)
-                        <div class="flex items-center gap-3 px-3 py-2.5">
+                        <div class="flex items-center gap-3 px-3 py-2.5"
+                             @if(!$loop->first) style="border-top: 1px solid var(--color-border)" @endif>
                             <div class="flex-1 min-w-0">
                                 <p class="text-xs font-medium text-slate-800 truncate">{{ $parte['nombre_completo'] }}</p>
                                 <p class="text-[11px] text-slate-400 font-mono">{{ $parte['ci_nit'] }}</p>
