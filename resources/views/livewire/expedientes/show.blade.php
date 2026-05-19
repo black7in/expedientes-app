@@ -18,15 +18,25 @@
             </h2>
             <x-estado-badge :estado="$expediente->estado" />
         </div>
-        <a href="{{ route('expedientes.edit', $expediente) }}" wire:navigate
-           class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-white rounded-md transition-opacity hover:opacity-90 flex-shrink-0"
-           style="background-color: var(--color-primary)">
-            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                      d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
-            </svg>
-            Editar
-        </a>
+        <div class="flex items-center gap-2 flex-shrink-0">
+            <a href="{{ route('generacion.desde-expediente', $expediente) }}" wire:navigate
+               class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md transition-opacity hover:opacity-90"
+               style="border: 1px solid var(--color-border); color: var(--color-text)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                </svg>
+                Generar documento
+            </a>
+            <a href="{{ route('expedientes.edit', $expediente) }}" wire:navigate
+               class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium text-white rounded-md transition-opacity hover:opacity-90"
+               style="background-color: var(--color-primary)">
+                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/>
+                </svg>
+                Editar
+            </a>
+        </div>
     </div>
 
     {{-- Meta row --}}

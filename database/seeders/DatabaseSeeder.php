@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
             JuzgadosSeeder::class,
             AdminUserSeeder::class,
             DemoSeeder::class,
+            PlantillasDocumentosSeeder::class,
         ]);
     }
 }

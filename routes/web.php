@@ -50,6 +50,16 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/{documento}', \App\Livewire\Documentos\Show::class)->name('show');
     });
 
+    // Generación de documentos con IA (RAG)
+    Route::prefix('generacion')->name('generacion.')->group(function () {
+        Route::get('/', \App\Livewire\Generacion\Index::class)->name('index');
+        Route::get('/nueva', \App\Livewire\Generacion\Crear::class)->name('crear');
+    });
+
+    // Desde expediente → generar documento
+    Route::get('/expedientes/{expediente}/generar', \App\Livewire\Generacion\Crear::class)
+        ->name('generacion.desde-expediente');
+
     // Administración (solo admin)
     Route::middleware('role:administrador')->group(function () {
         Route::get('/usuarios', \App\Livewire\Usuarios\Index::class)->name('usuarios.index');
@@ -59,6 +69,7 @@ Route::middleware(['auth'])->group(function () {
         Route::prefix('configuracion')->name('config.')->group(function () {
             Route::get('/tipos-proceso', \App\Livewire\Config\TiposProceso::class)->name('tipos-proceso');
             Route::get('/juzgados', \App\Livewire\Config\Juzgados::class)->name('juzgados');
+            Route::get('/base-conocimiento', \App\Livewire\Config\BaseConocimiento::class)->name('base-conocimiento');
         });
     });
 });
