@@ -2,25 +2,35 @@
 
 namespace App\Livewire\Generacion;
 
-use App\Models\Generacion;
+use App\Services\GeneracionService;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
-use Livewire\WithPagination;
 
 #[Layout('layouts.app')]
 #[Title('Historial de generaciones')]
 class Index extends Component
 {
-    use WithPagination;
+    public array   $generaciones = [];
+    public ?string $error        = null;
+
+    public function mount(): void
+    {
+        $this->cargar();
+    }
+
+    public function cargar(): void
+    {
+        try {
+            $this->generaciones = (new GeneracionService())->listarGeneraciones((string) auth()->id());
+        } catch (\Throwable $e) {
+            $this->error        = $e->getMessage();
+            $this->generaciones = [];
+        }
+    }
 
     public function render()
     {
-        $generaciones = Generacion::with(['creadoPor', 'expediente'])
-            ->where('creado_por', auth()->id())
-            ->latest()
-            ->paginate(15);
-
-        return view('livewire.generacion.index', compact('generaciones'));
+        return view('livewire.generacion.index');
     }
 }

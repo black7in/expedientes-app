@@ -16,6 +16,14 @@
         </a>
     </div>
 
+    {{-- Error --}}
+    @if($error)
+        <div class="flex items-start gap-3 px-4 py-3 rounded-lg mb-4 text-xs"
+             style="background-color: #fef2f2; border: 1px solid #fecaca; color: #b91c1c">
+            {{ $error }}
+        </div>
+    @endif
+
     <div class="bg-white rounded-lg" style="border: 1px solid var(--color-border)">
 
         @forelse($generaciones as $gen)
@@ -32,33 +40,56 @@
                         </svg>
                     </div>
                     <div class="min-w-0">
-                        <p class="text-xs font-medium capitalize" style="color: var(--color-text)">
-                            {{ str_replace('_', ' ', $gen->tipo_documento) }}
-                        </p>
-                        <div class="flex items-center gap-2 mt-0.5">
-                            @if($gen->expediente)
-                                <span class="text-[11px] font-mono" style="color: var(--color-primary)">
-                                    {{ $gen->expediente->numero_expediente ?? 'Sin número' }}
+                        <div class="flex items-center gap-2">
+                            <p class="text-xs font-medium capitalize" style="color: var(--color-text)">
+                                {{ str_replace('_', ' ', $gen['tipo_documento'] ?? '') }}
+                            </p>
+                            @if(!empty($gen['subtipo']))
+                                <span class="text-[10px] px-1.5 py-0.5 rounded"
+                                      style="background-color: var(--color-sidebar-active); color: var(--color-primary)">
+                                    {{ $gen['subtipo'] }}
                                 </span>
-                                <span style="color: var(--color-border-strong)">·</span>
                             @endif
+                            {{-- Estado --}}
+                            @php
+                                $estado = $gen['estado'] ?? '';
+                                $estadoColor = match($estado) {
+                                    'completado' => '#059669',
+                                    'error'      => '#dc2626',
+                                    'generando'  => '#d97706',
+                                    'editado'    => '#7c3aed',
+                                    default      => 'var(--color-muted)',
+                                };
+                            @endphp
+                            <span class="text-[10px]" style="color: {{ $estadoColor }}">{{ $estado }}</span>
+                        </div>
+                        <div class="flex items-center gap-2 mt-0.5">
                             <span class="text-[11px]" style="color: var(--color-muted)">
-                                {{ $gen->created_at->diffForHumans() }}
+                                {{ \Carbon\Carbon::parse($gen['created_at'])->diffForHumans() }}
                             </span>
-                            @if($gen->tokens_usados)
+                            @if(!empty($gen['tokens_total']))
                                 <span style="color: var(--color-border-strong)">·</span>
                                 <span class="text-[11px]" style="color: var(--color-muted)">
-                                    {{ number_format($gen->tokens_usados) }} tokens
+                                    {{ number_format($gen['tokens_total']) }} tokens
                                 </span>
                             @endif
                         </div>
                     </div>
                 </div>
 
-                <a href="{{ route('generacion.crear') }}" wire:navigate
-                   class="text-[11px] hover:underline flex-shrink-0" style="color: var(--color-muted)">
-                    Ver →
-                </a>
+                <div class="flex items-center gap-2 flex-shrink-0">
+                    @if(($gen['estado'] ?? '') === 'completado' || ($gen['estado'] ?? '') === 'editado')
+                        <a href="{{ route('generacion.descargar', $gen['id']) }}" target="_blank"
+                           class="text-[11px] hover:underline" style="color: var(--color-muted)">
+                            .docx
+                        </a>
+                    @endif
+                    <a href="{{ route('generacion.show', $gen['id']) }}" wire:navigate
+                       class="text-[11px] hover:underline" style="color: var(--color-primary)">
+                        Ver →
+                    </a>
+                </div>
+
             </div>
         @empty
             <div class="py-16 text-center">
@@ -79,11 +110,5 @@
             </div>
         @endforelse
     </div>
-
-    @if($generaciones->hasPages())
-        <div class="mt-4">
-            {{ $generaciones->links() }}
-        </div>
-    @endif
 
 </div>

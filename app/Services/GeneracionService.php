@@ -14,17 +14,18 @@ class GeneracionService
         $this->baseUrl = config('services.ai.url');
     }
 
+    // ── Generaciones ───────────────────────────────────────────────────────────
+
     /**
-     * Genera un borrador jurídico vía RAG.
-     * Modo A: expediente_id presente → contexto desde DB.
-     * Modo B: datos manuales del formulario.
+     * Crea una generación y la procesa (batch — bloquea hasta completar).
+     * Retorna {generacion_id, estado, contenido, tokens_input, tokens_output, secciones}.
      *
      * @throws RuntimeException si el servicio IA falla.
      */
     public function generar(array $datos): array
     {
-        $response = Http::timeout(120)
-            ->post("{$this->baseUrl}/api/generar", $datos);
+        $response = Http::timeout(180)
+            ->post("{$this->baseUrl}/api/generaciones", $datos);
 
         if ($response->failed()) {
             $detalle = $response->json('detail') ?? $response->body();
@@ -35,13 +36,153 @@ class GeneracionService
     }
 
     /**
-     * Indexa un documento del estudio para búsqueda semántica futura.
-     *
-     * @throws RuntimeException si el servicio IA falla.
+     * Obtiene el detalle de una generación.
      */
-    public function indexarDocumento(string $documentoId, string $tipoDoc): array
+    public function getGeneracion(string $id): array
     {
-        $response = Http::timeout(60)
+        $response = Http::timeout(15)->get("{$this->baseUrl}/api/generaciones/{$id}");
+
+        if ($response->failed()) {
+            throw new RuntimeException("Generación no encontrada");
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Lista generaciones de un usuario.
+     */
+    public function listarGeneraciones(string $usuarioId): array
+    {
+        $response = Http::timeout(15)
+            ->get("{$this->baseUrl}/api/generaciones", ['usuario_id' => $usuarioId]);
+
+        if ($response->failed()) {
+            throw new RuntimeException("Error al listar generaciones");
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Devuelve las secciones con trazabilidad de una generación.
+     */
+    public function getSecciones(string $generacionId): array
+    {
+        $response = Http::timeout(15)
+            ->get("{$this->baseUrl}/api/generaciones/{$generacionId}/secciones");
+
+        if ($response->failed()) {
+            throw new RuntimeException("Error al obtener secciones");
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Regenera una sección con feedback opcional.
+     */
+    public function regenerarSeccion(string $generacionId, string $seccionId, ?string $feedback = null): array
+    {
+        $response = Http::timeout(120)
+            ->post("{$this->baseUrl}/api/generaciones/{$generacionId}/secciones/{$seccionId}/regenerar", [
+                'feedback' => $feedback,
+            ]);
+
+        if ($response->failed()) {
+            $detalle = $response->json('detail') ?? $response->body();
+            throw new RuntimeException("Error al regenerar sección: {$detalle}");
+        }
+
+        return $response->json();
+    }
+
+    /**
+     * Guarda edición manual del documento completo.
+     */
+    public function actualizarContenido(string $generacionId, string $contenido): void
+    {
+        $response = Http::timeout(15)
+            ->put("{$this->baseUrl}/api/generaciones/{$generacionId}", [
+                'contenido' => $contenido,
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException("Error al guardar contenido");
+        }
+    }
+
+    /**
+     * Guarda edición manual de una sección.
+     */
+    public function editarSeccion(string $generacionId, string $seccionId, string $contenido): void
+    {
+        $response = Http::timeout(15)
+            ->put("{$this->baseUrl}/api/generaciones/{$generacionId}/secciones/{$seccionId}", [
+                'contenido_editado' => $contenido,
+            ]);
+
+        if ($response->failed()) {
+            throw new RuntimeException("Error al editar sección");
+        }
+    }
+
+    /**
+     * Cancela una generación en curso.
+     */
+    public function cancelar(string $generacionId): void
+    {
+        Http::timeout(10)->post("{$this->baseUrl}/api/generaciones/{$generacionId}/cancelar");
+    }
+
+    /**
+     * Descarga el .docx de una generación. Retorna el contenido binario.
+     */
+    public function descargarDocx(string $generacionId): string
+    {
+        $response = Http::timeout(30)
+            ->get("{$this->baseUrl}/api/generaciones/{$generacionId}/descargar");
+
+        if ($response->failed()) {
+            throw new RuntimeException("Error al descargar documento");
+        }
+
+        return $response->body();
+    }
+
+    /**
+     * Elimina una generación.
+     */
+    public function eliminar(string $generacionId): void
+    {
+        Http::timeout(15)->delete("{$this->baseUrl}/api/generaciones/{$generacionId}");
+    }
+
+    // ── Plantillas ─────────────────────────────────────────────────────────────
+
+    /**
+     * Lista plantillas activas desde FastAPI.
+     */
+    public function getPlantillas(): array
+    {
+        $response = Http::timeout(15)
+            ->get("{$this->baseUrl}/api/generaciones/plantillas/listar");
+
+        if ($response->failed()) {
+            throw new RuntimeException("Error al obtener plantillas");
+        }
+
+        return $response->json();
+    }
+
+    // ── Indexación ─────────────────────────────────────────────────────────────
+
+    /**
+     * Indexa un documento del estudio para búsqueda semántica.
+     */
+    public function indexarDocumento(string $documentoId, ?string $tipoDoc = null): array
+    {
+        $response = Http::timeout(120)
             ->post("{$this->baseUrl}/api/documentos/{$documentoId}/indexar", [
                 'tipo_doc' => $tipoDoc,
             ]);
@@ -56,8 +197,6 @@ class GeneracionService
 
     /**
      * Indexa un PDF de ley boliviana (admin).
-     *
-     * @throws RuntimeException si el servicio IA falla.
      */
     public function indexarLey($archivo, string $nombreLey, string $materia): array
     {
@@ -78,8 +217,6 @@ class GeneracionService
 
     /**
      * Indexa un Auto Supremo del TSJ Bolivia (admin).
-     *
-     * @throws RuntimeException si el servicio IA falla.
      */
     public function indexarJurisprudencia(array $datos): array
     {
@@ -96,94 +233,15 @@ class GeneracionService
 
     /**
      * Estadísticas de las colecciones RAG (admin).
-     *
-     * @throws RuntimeException si el servicio IA falla.
      */
     public function getRagStats(): array
     {
-        $response = Http::timeout(30)
-            ->get("{$this->baseUrl}/api/admin/rag-stats");
+        $response = Http::timeout(30)->get("{$this->baseUrl}/api/admin/rag-stats");
 
         if ($response->failed()) {
             throw new RuntimeException("Error al obtener estadísticas RAG");
         }
 
         return $response->json();
-    }
-
-    // ── Plantillas ─────────────────────────────────────────────────────────────
-
-    /**
-     * Lista plantillas activas desde FastAPI (opcionalmente filtradas por materia).
-     */
-    public function getPlantillas(?string $materia = null): array
-    {
-        $response = Http::timeout(15)
-            ->get("{$this->baseUrl}/api/admin/plantillas", $materia ? ['materia' => $materia] : []);
-
-        if ($response->failed()) {
-            throw new RuntimeException("Error al obtener plantillas");
-        }
-
-        return $response->json();
-    }
-
-    /**
-     * Obtiene el contenido completo de una plantilla.
-     */
-    public function getPlantilla(string $id): array
-    {
-        $response = Http::timeout(15)->get("{$this->baseUrl}/api/admin/plantillas/{$id}");
-
-        if ($response->failed()) {
-            throw new RuntimeException("Plantilla no encontrada");
-        }
-
-        return $response->json();
-    }
-
-    /**
-     * Crea o actualiza una plantilla.
-     */
-    public function guardarPlantilla(array $datos, ?string $id = null): array
-    {
-        if ($id) {
-            $response = Http::timeout(15)->put("{$this->baseUrl}/api/admin/plantillas/{$id}", $datos);
-        } else {
-            $response = Http::timeout(15)->post("{$this->baseUrl}/api/admin/plantillas", $datos);
-        }
-
-        if ($response->failed()) {
-            $detalle = $response->json('detail') ?? $response->body();
-            throw new RuntimeException("Error al guardar plantilla: {$detalle}");
-        }
-
-        return $response->json();
-    }
-
-    /**
-     * Marca una plantilla como default para su materia+tipo_documento.
-     */
-    public function setPlantillaDefault(string $id): array
-    {
-        $response = Http::timeout(15)->post("{$this->baseUrl}/api/admin/plantillas/{$id}/default");
-
-        if ($response->failed()) {
-            throw new RuntimeException("Error al establecer plantilla como default");
-        }
-
-        return $response->json();
-    }
-
-    /**
-     * Desactiva (soft-delete) una plantilla.
-     */
-    public function eliminarPlantilla(string $id): void
-    {
-        $response = Http::timeout(15)->delete("{$this->baseUrl}/api/admin/plantillas/{$id}");
-
-        if ($response->failed()) {
-            throw new RuntimeException("Error al eliminar plantilla");
-        }
     }
 }

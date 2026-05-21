@@ -14,35 +14,46 @@ class Generacion extends Model
     protected $table = 'generaciones';
 
     protected $fillable = [
+        'usuario_id',
         'expediente_id',
-        'creado_por',
         'tipo_documento',
-        'contexto_usado',
-        'chunks_usados',
-        'prompt_enviado',
-        'borrador_generado',
-        'modelo_usado',
-        'tokens_usados',
-        'tiempo_ms',
+        'subtipo',
+        'plantilla_id',
+        'formato_salida',
+        'input_formulario',
+        'estado',
+        'cancelada',
+        'contenido_actual',
+        'llm_provider',
+        'llm_model',
+        'tokens_input',
+        'tokens_output',
     ];
 
     protected $casts = [
-        'contexto_usado' => 'array',
-        'chunks_usados'  => 'array',
+        'input_formulario' => 'array',
+        'cancelada'        => 'boolean',
+        'tokens_input'     => 'integer',
+        'tokens_output'    => 'integer',
     ];
+
+    public function usuario(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'usuario_id');
+    }
 
     public function expediente(): BelongsTo
     {
         return $this->belongsTo(Expediente::class);
     }
 
-    public function creadoPor(): BelongsTo
+    public function plantilla(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'creado_por');
+        return $this->belongsTo(Plantilla::class);
     }
 
-    public function borradores(): HasMany
+    public function secciones(): HasMany
     {
-        return $this->hasMany(Borrador::class, 'generacion_id');
+        return $this->hasMany(GeneracionSeccion::class)->orderBy('orden');
     }
 }

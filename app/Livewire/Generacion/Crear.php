@@ -16,31 +16,44 @@ class Crear extends Component
     public string $modo = 'manual';
 
     // Modo A — desde expediente
-    public ?string $expediente_id = null;
-    public ?Expediente $expediente = null;
+    public ?string    $expediente_id = null;
+    public ?Expediente $expediente   = null;
 
-    // ── Campos comunes ────────────────────────────────────────────────────────
-    public string $tipo_documento = 'demanda';
-    public string $instrucciones  = '';
+    // ── Configuración de generación ───────────────────────────────────────────
+    public string $plantilla_id   = '';
+    public string $formato_salida = 'estructurado';
 
-    // ── Modo B — formulario manual ────────────────────────────────────────────
-    public string $demandante   = '';
-    public string $demandado    = '';
-    public string $juzgado      = '';
-    public string $ciudad       = 'Santa Cruz de la Sierra';
-    public string $tipo_proceso = '';
-    public string $hechos       = '';
+    // ── Campos formulario ─────────────────────────────────────────────────────
+    public string $demandante          = '';
+    public string $demandado           = '';
+    public string $juzgado             = '';
+    public string $ciudad              = 'Santa Cruz de la Sierra';
+    public string $tipo_proceso        = '';
+    public string $hechos              = '';
+    public string $instrucciones_extra = '';
 
     // ── Estado ────────────────────────────────────────────────────────────────
-    public bool    $generando      = false;
-    public ?string $borrador       = null;
-    public ?string $generacion_id  = null;
-    public ?int    $tokens_usados  = null;
-    public ?int    $tiempo_ms      = null;
-    public ?string $error          = null;
+    public bool    $generando     = false;
+    public ?string $contenido     = null;
+    public ?string $generacion_id = null;
+    public ?int    $tokens_total  = null;
+    public ?array  $secciones     = null;
+    public ?string $error         = null;
+
+    // ── Datos cargados desde API ──────────────────────────────────────────────
+    public array $plantillas = [];
 
     public function mount(?Expediente $expediente = null): void
     {
+        try {
+            $this->plantillas = (new GeneracionService())->getPlantillas();
+            if (!empty($this->plantillas)) {
+                $this->plantilla_id = $this->plantillas[0]['id'];
+            }
+        } catch (\Throwable) {
+            $this->plantillas = [];
+        }
+
         if ($expediente && $expediente->exists) {
             $this->expediente    = $expediente->load(['juzgado', 'tipoProceso', 'partes.persona']);
             $this->expediente_id = (string) $expediente->id;
@@ -54,32 +67,31 @@ class Crear extends Component
 
         $this->generando = true;
         $this->error     = null;
-        $this->borrador  = null;
+        $this->contenido = null;
+        $this->secciones = null;
 
         try {
-            $datos = [
-                'tipo_documento' => $this->tipo_documento,
-                'creado_por'     => (string) auth()->id(),
-                'instrucciones'  => $this->instrucciones ?: null,
-            ];
+            $resultado = (new GeneracionService())->generar([
+                'usuario_id'         => (string) auth()->id(),
+                'plantilla_id'       => $this->plantilla_id,
+                'formato_salida'     => $this->formato_salida,
+                'expediente_id'      => $this->expediente_id,
+                'demandante'         => $this->demandante,
+                'demandado'          => $this->demandado,
+                'juzgado'            => $this->juzgado,
+                'ciudad'             => $this->ciudad,
+                'tipo_proceso'       => $this->tipo_proceso,
+                'hechos'             => $this->hechos,
+                'instrucciones_extra'=> $this->instrucciones_extra ?: null,
+            ]);
 
-            if ($this->modo === 'expediente') {
-                $datos['expediente_id'] = $this->expediente_id;
-            } else {
-                $datos['demandante']   = $this->demandante;
-                $datos['demandado']    = $this->demandado;
-                $datos['juzgado']      = $this->juzgado;
-                $datos['ciudad']       = $this->ciudad;
-                $datos['tipo_proceso'] = $this->tipo_proceso;
-                $datos['hechos']       = $this->hechos;
-            }
-
-            $resultado = (new GeneracionService())->generar($datos);
-
-            $this->borrador      = $resultado['borrador'];
+            $this->contenido     = $resultado['contenido'];
             $this->generacion_id = $resultado['generacion_id'];
-            $this->tokens_usados = $resultado['tokens_usados'];
-            $this->tiempo_ms     = $resultado['tiempo_ms'];
+            $this->secciones     = $resultado['secciones'] ?? [];
+            $this->tokens_total  = ($resultado['tokens_input'] ?? 0) + ($resultado['tokens_output'] ?? 0);
+
+            // Navegar al Show page para poder editar y regenerar secciones
+            $this->redirect(route('generacion.show', $resultado['generacion_id']), navigate: true);
         } catch (\Throwable $e) {
             $this->error = $e->getMessage();
         } finally {
@@ -87,37 +99,25 @@ class Crear extends Component
         }
     }
 
-    public function copiarBorrador(): void
-    {
-        $this->dispatch('copiar-al-portapapeles', texto: $this->borrador);
-    }
-
     public function nuevaGeneracion(): void
     {
-        $this->borrador      = null;
-        $this->generacion_id = null;
-        $this->tokens_usados = null;
-        $this->tiempo_ms     = null;
-        $this->error         = null;
-        $this->instrucciones = '';
+        $this->contenido          = null;
+        $this->generacion_id      = null;
+        $this->tokens_total       = null;
+        $this->secciones          = null;
+        $this->error              = null;
+        $this->instrucciones_extra = '';
     }
 
     protected function rules(): array
     {
-        $reglas = [
-            'tipo_documento' => 'required|in:demanda,memorial,contestacion,apelacion,nulidad,contrato',
+        return [
+            'plantilla_id'   => 'required|uuid',
+            'formato_salida' => 'required|in:estructurado,corrido',
+            'demandante'     => 'required|min:3',
+            'demandado'      => 'required|min:3',
+            'hechos'         => 'required|min:50',
         ];
-
-        if ($this->modo === 'manual') {
-            $reglas += [
-                'demandante'   => 'required|min:3',
-                'demandado'    => 'required|min:3',
-                'tipo_proceso' => 'required|min:3',
-                'hechos'       => 'required|min:20',
-            ];
-        }
-
-        return $reglas;
     }
 
     public function render()

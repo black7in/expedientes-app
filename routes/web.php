@@ -54,6 +54,15 @@ Route::middleware(['auth'])->group(function () {
     Route::prefix('generacion')->name('generacion.')->group(function () {
         Route::get('/', \App\Livewire\Generacion\Index::class)->name('index');
         Route::get('/nueva', \App\Livewire\Generacion\Crear::class)->name('crear');
+        Route::get('/{generacion_id}', \App\Livewire\Generacion\Show::class)->name('show');
+        Route::get('/{generacion_id}/descargar', function (string $generacion_id) {
+            $bytes  = (new \App\Services\GeneracionService())->descargarDocx($generacion_id);
+            $nombre = "documento_{$generacion_id}.docx";
+            return response($bytes, 200, [
+                'Content-Type'        => 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+                'Content-Disposition' => "attachment; filename=\"{$nombre}\"",
+            ]);
+        })->name('descargar');
     });
 
     // Desde expediente → generar documento
