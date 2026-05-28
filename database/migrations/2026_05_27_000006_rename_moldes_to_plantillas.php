@@ -8,28 +8,35 @@ return new class extends Migration
 {
     public function up(): void
     {
-        // 1. Eliminar FK antes de tocar columnas referenciadas
-        DB::statement('ALTER TABLE memoriales_feedback DROP CONSTRAINT IF EXISTS memoriales_feedback_source_doc_id_foreign');
+        // Renombrar tabla principal (solo si existe)
+        if (Schema::hasTable('memoriales_moldes')) {
+            // 1. Eliminar FK en feedback antes de renombrar
+            if (Schema::hasTable('memoriales_feedback')) {
+                DB::statement('ALTER TABLE memoriales_feedback DROP CONSTRAINT IF EXISTS memoriales_feedback_source_doc_id_foreign');
+            }
 
-        // 2. Renombrar tabla principal
-        Schema::rename('memoriales_moldes', 'plantillas_memoriales');
+            // 2. Renombrar tabla principal
+            Schema::rename('memoriales_moldes', 'plantillas_memoriales');
 
-        // 3. Renombrar columna doc_id → id y cambiar tipo a UUID
-        DB::statement('ALTER TABLE plantillas_memoriales RENAME COLUMN doc_id TO id');
-        DB::statement('ALTER TABLE plantillas_memoriales ALTER COLUMN id TYPE uuid USING gen_random_uuid()');
-        DB::statement('ALTER TABLE plantillas_memoriales ALTER COLUMN id SET DEFAULT gen_random_uuid()');
+            // 3. Renombrar columna doc_id → id y cambiar tipo a UUID
+            DB::statement('ALTER TABLE plantillas_memoriales RENAME COLUMN doc_id TO id');
+            DB::statement('ALTER TABLE plantillas_memoriales ALTER COLUMN id TYPE uuid USING gen_random_uuid()');
+            DB::statement('ALTER TABLE plantillas_memoriales ALTER COLUMN id SET DEFAULT gen_random_uuid()');
 
-        // 4. Renombrar índices
-        DB::statement('ALTER INDEX IF EXISTS idx_moldes_filtros   RENAME TO idx_plantillas_filtros');
-        DB::statement('ALTER INDEX IF EXISTS idx_moldes_calidad   RENAME TO idx_plantillas_calidad');
-        DB::statement('ALTER INDEX IF EXISTS idx_moldes_embedding RENAME TO idx_plantillas_embedding');
+            // 4. Renombrar índices
+            DB::statement('ALTER INDEX IF EXISTS idx_moldes_filtros   RENAME TO idx_plantillas_filtros');
+            DB::statement('ALTER INDEX IF EXISTS idx_moldes_calidad   RENAME TO idx_plantillas_calidad');
+            DB::statement('ALTER INDEX IF EXISTS idx_moldes_embedding RENAME TO idx_plantillas_embedding');
 
-        // 5. Renombrar tabla de feedback y ajustar FK
-        Schema::rename('memoriales_feedback', 'plantillas_feedback');
-        DB::statement('ALTER TABLE plantillas_feedback RENAME COLUMN source_doc_id TO plantilla_id');
-        DB::statement('ALTER TABLE plantillas_feedback ALTER COLUMN plantilla_id TYPE uuid USING NULL::uuid');
-        DB::statement('ALTER TABLE plantillas_feedback ADD CONSTRAINT plantillas_feedback_plantilla_id_foreign
-            FOREIGN KEY (plantilla_id) REFERENCES plantillas_memoriales(id) ON DELETE SET NULL');
+            // 5. Renombrar tabla de feedback y ajustar FK
+            if (Schema::hasTable('memoriales_feedback')) {
+                Schema::rename('memoriales_feedback', 'plantillas_feedback');
+                DB::statement('ALTER TABLE plantillas_feedback RENAME COLUMN source_doc_id TO plantilla_id');
+                DB::statement('ALTER TABLE plantillas_feedback ALTER COLUMN plantilla_id TYPE uuid USING NULL::uuid');
+                DB::statement('ALTER TABLE plantillas_feedback ADD CONSTRAINT plantillas_feedback_plantilla_id_foreign
+                    FOREIGN KEY (plantilla_id) REFERENCES plantillas_memoriales(id) ON DELETE SET NULL');
+            }
+        }
     }
 
     public function down(): void

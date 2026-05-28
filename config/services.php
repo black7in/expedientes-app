@@ -39,4 +39,8 @@ return [
         'url' => env('AI_SERVICE_URL', 'http://expedientes-ai:8000'),
     ],
 
+    'tsj' => [
+        'url' => env('TSJ_SERVICE_URL', 'http://tsj_jurisprudencia:8000'),
+    ],
+
 ];

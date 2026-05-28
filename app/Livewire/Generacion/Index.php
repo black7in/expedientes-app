@@ -2,7 +2,7 @@
 
 namespace App\Livewire\Generacion;
 
-use App\Services\GeneracionService;
+use App\Models\Generacion;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
@@ -11,26 +11,12 @@ use Livewire\Component;
 #[Title('Historial de generaciones')]
 class Index extends Component
 {
-    public array   $generaciones = [];
-    public ?string $error        = null;
-
-    public function mount(): void
-    {
-        $this->cargar();
-    }
-
-    public function cargar(): void
-    {
-        try {
-            $this->generaciones = (new GeneracionService())->listarGeneraciones((string) auth()->id());
-        } catch (\Throwable $e) {
-            $this->error        = $e->getMessage();
-            $this->generaciones = [];
-        }
-    }
-
     public function render()
     {
-        return view('livewire.generacion.index');
+        $generaciones = Generacion::where('usuario_id', (string) auth()->id())
+            ->latest()
+            ->get();
+
+        return view('livewire.generacion.index', compact('generaciones'));
     }
 }

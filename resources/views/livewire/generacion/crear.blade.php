@@ -1,10 +1,4 @@
-<div x-data="{}"
-     x-on:descargar-docx.window="
-        const a = document.createElement('a');
-        a.href = 'data:application/vnd.openxmlformats-officedocument.wordprocessingml.document;base64,' + $event.detail.b64;
-        a.download = $event.detail.nombre;
-        a.click();
-     ">
+<div>
 
     {{-- Breadcrumb --}}
     <div class="flex items-center gap-1.5 text-xs mb-5" style="color: var(--color-muted)">
@@ -16,219 +10,388 @@
         <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
         </svg>
-        <span style="color: var(--color-text-secondary)">Nuevo documento</span>
+        <span style="color: var(--color-text-secondary)">
+            @if($estado === 'editor') Resultado
+            @elseif($estado === 'procesando') Generando...
+            @else Nuevo documento
+            @endif
+        </span>
     </div>
 
-    {{-- Header --}}
-    <div class="flex items-center justify-between mb-6">
-        <div>
-            <h1 class="text-lg font-semibold" style="color: var(--color-text)">Generar Documento</h1>
-            <p class="text-xs mt-0.5" style="color: var(--color-muted)">
-                Redacción asistida por IA con base en legislación boliviana y jurisprudencia del TSJ
-            </p>
-        </div>
-    </div>
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    {{-- ESTADO: INPUT                                                          --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    @if($estado === 'input')
 
-    <div class="flex gap-5 items-start">
+        <div class="flex gap-5" style="height: calc(100vh - 140px); overflow: hidden">
 
-        {{-- ── PANEL IZQUIERDO — Formulario ──────────────────────────────────────── --}}
-        <div class="w-80 flex-shrink-0 space-y-4">
+            {{-- ── Panel izquierdo — contexto ──────────────────────────────── --}}
+            <div class="w-64 flex-shrink-0 space-y-4 overflow-y-auto min-h-0 pr-1">
 
-            {{-- Expediente vinculado (modo A) --}}
-            @if($expediente)
+                {{-- Título --}}
+                <div>
+                    <div class="w-10 h-10 rounded-xl flex items-center justify-center mb-3"
+                         style="background: var(--color-sidebar-active)">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"
+                             style="color: var(--color-primary)">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                  d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                        </svg>
+                    </div>
+                    <h1 class="text-sm font-semibold" style="color: var(--color-text)">Asistente de redacción</h1>
+                    <p class="text-xs mt-1 leading-relaxed" style="color: var(--color-muted)">
+                        Describí el caso en lenguaje natural y la IA genera el memorial jurídico en boliviano.
+                    </p>
+                </div>
+
+                {{-- Reglas --}}
                 <div class="bg-white rounded-lg p-4" style="border: 1px solid var(--color-border)">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-2.5" style="color: var(--color-subtle)">Expediente vinculado</p>
-                    <p class="text-xs font-mono font-semibold" style="color: var(--color-text)">
-                        {{ $expediente->numero_expediente ?? 'Sin número' }}
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-3" style="color: var(--color-subtle)">
+                        Qué escribir
                     </p>
-                    @if($expediente->tipoProceso)
-                        <p class="text-[11px] mt-1" style="color: var(--color-muted)">{{ $expediente->tipoProceso->nombre }}</p>
-                    @endif
-                    @if($expediente->juzgado)
-                        <p class="text-[11px]" style="color: var(--color-muted)">{{ $expediente->juzgado->nombre }}</p>
-                    @endif
-                    <a href="{{ route('expedientes.show', $expediente) }}" wire:navigate
-                       class="inline-block text-[11px] mt-2 hover:underline" style="color: var(--color-primary)">
-                        Ver expediente →
-                    </a>
-                </div>
-            @endif
-
-            {{-- Plantilla --}}
-            <div class="bg-white rounded-lg p-4" style="border: 1px solid var(--color-border)">
-                <label class="block text-[10px] font-semibold uppercase tracking-wide mb-2" style="color: var(--color-subtle)">
-                    Plantilla *
-                </label>
-                @if(empty($plantillas))
-                    <p class="text-xs" style="color: var(--color-muted)">No hay plantillas disponibles (servicio IA no disponible)</p>
-                @else
-                    <select wire:model="plantilla_id"
-                            class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                            style="border: 1px solid var(--color-border); color: var(--color-text); background: white;">
-                        @foreach($plantillas as $plt)
-                            <option value="{{ $plt['id'] }}">
-                                {{ $plt['nombre'] }}
-                            </option>
+                    <ul class="space-y-3">
+                        @foreach([
+                            ['1', 'Indicá el tipo de acción', 'ejecutiva, coactiva, ordinaria, desalojo...'],
+                            ['2', 'Nombrá a todas las partes', 'nombre completo + CI de cada una'],
+                            ['3', 'Fechas exactas', 'del contrato, vencimiento, incumplimiento'],
+                            ['4', 'Montos en cifras', 'Bs. o USD, capital e intereses si aplica'],
+                            ['5', 'Hechos en orden', 'qué pasó primero, qué pasó después'],
+                            ['6', 'Pretensión concreta', 'qué pedís al juzgado exactamente'],
+                            ['7', 'Jurisprudencia', 'si el caso lo requiere, activá el toggle — incluye Autos Supremos relevantes pero tarda más'],
+                        ] as [$num, $titulo, $detalle])
+                            <li class="flex items-start gap-2.5">
+                                <span class="text-[10px] font-bold w-4 flex-shrink-0 mt-0.5"
+                                      style="color: var(--color-primary)">{{ $num }}.</span>
+                                <div>
+                                    <p class="text-[11px] font-medium" style="color: var(--color-text)">{{ $titulo }}</p>
+                                    <p class="text-[11px]" style="color: var(--color-muted)">{{ $detalle }}</p>
+                                </div>
+                            </li>
                         @endforeach
-                    </select>
-                    @error('plantilla_id')
-                        <p class="text-[11px] mt-1 text-red-600">{{ $message }}</p>
-                    @enderror
+                    </ul>
+                </div>
+
+                {{-- Error --}}
+                @if($errorMsg)
+                    <div class="rounded-lg px-3 py-2.5 text-xs"
+                         style="background:#fef2f2; border:1px solid #fecaca; color:#b91c1c">
+                        {{ $errorMsg }}
+                    </div>
                 @endif
 
-                {{-- Formato de salida --}}
-                <p class="text-[10px] font-semibold uppercase tracking-wide mt-3 mb-2" style="color: var(--color-subtle)">
-                    Formato
-                </p>
-                <div class="flex rounded-md overflow-hidden" style="border: 1px solid var(--color-border)">
-                    <button wire:click="$set('formato_salida', 'estructurado')" type="button"
-                            class="flex-1 py-1.5 text-xs font-medium transition-colors"
-                            style="{{ $formato_salida === 'estructurado' ? 'background-color: var(--color-primary); color: white;' : 'color: var(--color-muted);' }}">
-                        Estructurado
+            </div>
+
+            {{-- ── Panel derecho — formulario ──────────────────────────────── --}}
+            <div class="flex-1 min-w-0 min-h-0 flex flex-col gap-3">
+
+                {{-- Textarea —  ocupa todo el espacio disponible --}}
+                <div class="flex-1 min-h-0 bg-white rounded-xl flex flex-col"
+                     style="border: 1px solid var(--color-border)">
+                    <div class="px-5 pt-4 pb-2 flex-shrink-0"
+                         style="border-bottom: 1px solid var(--color-border)">
+                        <p class="text-xs font-medium" style="color: var(--color-text)">Descripción del caso</p>
+                    </div>
+                    <textarea wire:model="narracion"
+                              placeholder="Ej.: Mi cliente Juan Pérez, CI 1234567, prestó Bs. 50.000 al señor Mario López el 15 de enero de 2024, plazo 6 meses sin intereses, mediante documento privado. Al vencimiento en julio de 2024 el deudor no pagó. Se pretende acción ejecutiva ante el Juez de Partido Civil de Cochabamba..."
+                              class="flex-1 w-full px-5 py-4 resize-none focus:outline-none text-xs leading-relaxed"
+                              style="color: var(--color-text); background: transparent"></textarea>
+                </div>
+
+                {{-- Barra inferior: contador + toggle + botón --}}
+                <div class="flex-shrink-0 bg-white rounded-xl px-4 py-3 flex items-center gap-4"
+                     style="border: 1px solid var(--color-border)">
+
+                    {{-- Contador --}}
+                    <span class="text-[11px] flex-shrink-0" style="color: var(--color-muted)">
+                        {{ strlen($narracion) }} caracteres
+                        @if(strlen($narracion) > 0 && strlen($narracion) < 100)
+                            <span style="color: #d97706"> · mínimo 100</span>
+                        @endif
+                    </span>
+
+                    @error('narracion')
+                        <span class="text-[11px]" style="color: #dc2626">{{ $message }}</span>
+                    @enderror
+
+                    <div class="flex-1"></div>
+
+                    {{-- Toggle jurisprudencia --}}
+                    <label class="flex items-center gap-2 cursor-pointer select-none flex-shrink-0"
+                           x-data="{ on: $wire.entangle('incluirJuris') }">
+                        <div class="relative">
+                            <input type="checkbox" wire:model="incluirJuris" class="sr-only">
+                            <div class="w-8 h-4 rounded-full transition-colors duration-200"
+                                 :style="on ? 'background:var(--color-primary)' : 'background:var(--color-border-strong)'"></div>
+                            <div class="absolute top-0.5 left-0.5 w-3 h-3 rounded-full bg-white shadow transition-transform duration-200"
+                                 :style="on ? 'transform:translateX(16px)' : ''"></div>
+                        </div>
+                        <span class="text-xs" style="color: var(--color-text)">Incluir jurisprudencia</span>
+                    </label>
+
+                    {{-- Botón generar --}}
+                    <button wire:click="generar"
+                            wire:loading.attr="disabled"
+                            wire:target="generar"
+                            class="flex items-center gap-2 h-9 px-5 rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-60 flex-shrink-0"
+                            style="background-color: var(--color-primary); color: white;">
+                        <span wire:loading.remove wire:target="generar" class="flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+                            </svg>
+                            Generar documento
+                        </span>
+                        <span wire:loading wire:target="generar" class="flex items-center gap-2">
+                            <svg class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
+                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
+                            </svg>
+                            Preparando...
+                        </span>
                     </button>
-                    <button wire:click="$set('formato_salida', 'corrido')" type="button"
-                            class="flex-1 py-1.5 text-xs font-medium transition-colors"
-                            style="{{ $formato_salida === 'corrido' ? 'background-color: var(--color-primary); color: white;' : 'color: var(--color-muted); border-left: 1px solid var(--color-border);' }}">
-                        Corrido
-                    </button>
+
                 </div>
+
             </div>
-
-            {{-- Datos del caso --}}
-            <div class="bg-white rounded-lg p-4 space-y-3" style="border: 1px solid var(--color-border)">
-                <p class="text-[10px] font-semibold uppercase tracking-wide" style="color: var(--color-subtle)">Datos del caso</p>
-
-                <div>
-                    <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Demandante *</label>
-                    <input type="text" wire:model="demandante" placeholder="Nombre completo"
-                           class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                           style="border: 1px solid var(--color-border); color: var(--color-text); background: white;">
-                    @error('demandante')
-                        <p class="text-[11px] mt-0.5 text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Demandado *</label>
-                    <input type="text" wire:model="demandado" placeholder="Nombre completo"
-                           class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                           style="border: 1px solid var(--color-border); color: var(--color-text); background: white;">
-                    @error('demandado')
-                        <p class="text-[11px] mt-0.5 text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-
-                <div>
-                    <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Juzgado</label>
-                    <input type="text" wire:model="juzgado" placeholder="Ej: Juzgado 1ro Civil"
-                           class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                           style="border: 1px solid var(--color-border); color: var(--color-text); background: white;">
-                </div>
-
-                <div>
-                    <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Ciudad</label>
-                    <input type="text" wire:model="ciudad"
-                           class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                           style="border: 1px solid var(--color-border); color: var(--color-text); background: white;">
-                </div>
-
-                <div>
-                    <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Tipo de proceso</label>
-                    <input type="text" wire:model="tipo_proceso" placeholder="Ej: Proceso Ordinario"
-                           class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                           style="border: 1px solid var(--color-border); color: var(--color-text); background: white;">
-                </div>
-
-                <div>
-                    <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Hechos del caso *</label>
-                    <textarea wire:model="hechos" rows="6"
-                              placeholder="Describe los hechos del caso de forma clara y cronológica (mínimo 50 caracteres)..."
-                              class="w-full text-xs rounded-md px-3 py-2 focus:outline-none resize-none"
-                              style="border: 1px solid var(--color-border); color: var(--color-text); background: white;"></textarea>
-                    @error('hechos')
-                        <p class="text-[11px] mt-0.5 text-red-600">{{ $message }}</p>
-                    @enderror
-                </div>
-            </div>
-
-            {{-- Instrucciones adicionales --}}
-            <div class="bg-white rounded-lg p-4" style="border: 1px solid var(--color-border)">
-                <label class="block text-[10px] font-semibold uppercase tracking-wide mb-2" style="color: var(--color-subtle)">
-                    Instrucciones adicionales
-                </label>
-                <textarea wire:model="instrucciones_extra" rows="3"
-                          placeholder="Ej: enfatizar daños y perjuicios, incluir medida cautelar..."
-                          class="w-full text-xs rounded-md px-3 py-2 focus:outline-none resize-none"
-                          style="border: 1px solid var(--color-border); color: var(--color-text); background: white;"></textarea>
-            </div>
-
-            {{-- Botón generar --}}
-            <button wire:click="generar"
-                    wire:loading.attr="disabled"
-                    wire:target="generar"
-                    @if(empty($plantillas)) disabled @endif
-                    class="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg text-sm font-medium transition-opacity disabled:opacity-60"
-                    style="background-color: var(--color-primary); color: white;">
-                <span wire:loading.remove wire:target="generar">
-                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                    </svg>
-                </span>
-                <svg wire:loading wire:target="generar"
-                     class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                <span wire:loading.remove wire:target="generar">Generar documento</span>
-                <span wire:loading wire:target="generar">Generando con IA...</span>
-            </button>
 
         </div>
 
-        {{-- ── PANEL DERECHO — Resultado ──────────────────────────────────────────── --}}
-        <div class="flex-1 min-w-0">
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    {{-- ESTADO: PROCESANDO                                                     --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    @elseif($estado === 'procesando')
 
-            {{-- Error --}}
-            @if($error)
-                <div class="flex items-start gap-3 px-4 py-3 rounded-lg mb-4"
-                     style="background-color: #fef2f2; border: 1px solid #fecaca; color: #b91c1c">
-                    <svg class="w-4 h-4 mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-                              d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                    </svg>
-                    <span class="text-xs">{{ $error }}</span>
+        <div wire:poll.2s="verificarEstado"
+             class="flex gap-5" style="height: calc(100vh - 140px); overflow: hidden">
+
+            {{-- ── Panel izquierdo — timeline ──────────────────────────────── --}}
+            <div class="w-64 flex-shrink-0 min-h-0 pr-1 flex flex-col">
+
+                @php
+                    $pasos = [
+                        ['id' => 'analizando',  'label' => 'Analizando los hechos',  'desc' => 'Extrae inventario, partes y pretensión'],
+                        ['id' => 'recuperando', 'label' => 'Recuperando normativa',  'desc' => 'Busca artículos y moldes aplicables'],
+                        ['id' => 'generando',   'label' => 'Redactando el documento','desc' => 'El LLM produce el memorial'],
+                    ];
+                    $orden     = array_column($pasos, 'id');
+                    $idx       = array_search($pasoActual, $orden);
+                    $idx       = $idx === false ? 0 : $idx;
+                @endphp
+
+                {{-- Encabezado --}}
+                <div class="mb-7">
+                    <p class="text-sm font-semibold" style="color: var(--color-text)">Procesando</p>
+                    <p class="text-xs mt-0.5" style="color: var(--color-muted)">30 – 90 segundos</p>
                 </div>
-            @endif
 
-            {{-- Estado vacío / cargando --}}
-            <div class="bg-white rounded-lg flex flex-col items-center justify-center py-24"
+                {{-- Timeline vertical --}}
+                <div>
+                    @foreach($pasos as $i => $paso)
+                        @php
+                            $done   = $i < $idx;
+                            $active = $i === $idx;
+                        @endphp
+
+                        <div class="flex items-stretch gap-4">
+
+                            {{-- Columna izquierda: nodo + conector --}}
+                            <div class="flex flex-col items-center flex-shrink-0" style="width: 36px">
+
+                                {{-- Nodo --}}
+                                <div class="relative flex-shrink-0">
+                                    @if($active)
+                                        <span class="absolute inset-0 rounded-full animate-ping"
+                                              style="background: var(--color-primary); opacity: 0.25"></span>
+                                    @endif
+                                    <div class="w-9 h-9 rounded-full flex items-center justify-center relative z-10"
+                                         style="background: {{ $done ? '#059669' : ($active ? 'var(--color-primary)' : 'var(--color-border)') }}">
+                                        @if($done)
+                                            <svg class="w-4 h-4" fill="none" stroke="white" viewBox="0 0 24 24">
+                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                                            </svg>
+                                        @elseif($active)
+                                            <svg class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                                                <circle class="opacity-30" cx="12" cy="12" r="10" stroke="white" stroke-width="4"/>
+                                                <path class="opacity-90" fill="white" d="M4 12a8 8 0 018-8v8H4z"/>
+                                            </svg>
+                                        @else
+                                            <span class="w-2.5 h-2.5 rounded-full bg-white opacity-40"></span>
+                                        @endif
+                                    </div>
+                                </div>
+
+                                {{-- Conector vertical (no en el último) --}}
+                                @if(!$loop->last)
+                                    <div class="w-0.5 my-1" style="flex: 1; min-height: 40px;
+                                                background: {{ $done ? '#059669' : 'var(--color-border)' }}"></div>
+                                @endif
+
+                            </div>
+
+                            {{-- Columna derecha: texto --}}
+                            <div class="{{ $loop->last ? 'pt-2' : 'pb-10 pt-2' }}">
+                                <p class="text-xs leading-tight"
+                                   style="color: {{ $done ? '#059669' : ($active ? 'var(--color-text)' : 'var(--color-muted)') }};
+                                          font-weight: {{ $active ? '600' : '400' }}">
+                                    {{ $paso['label'] }}
+                                </p>
+                                @if($active)
+                                    <p class="text-[11px] mt-1 leading-relaxed" style="color: var(--color-muted)">
+                                        {{ $paso['desc'] }}
+                                    </p>
+                                @endif
+                            </div>
+
+                        </div>
+                    @endforeach
+                </div>
+
+            </div>
+
+            {{-- ── Panel derecho — narración enviada ───────────────────────── --}}
+            <div class="flex-1 min-w-0 min-h-0 bg-white rounded-xl flex flex-col"
                  style="border: 1px solid var(--color-border)">
-                @if($generando)
-                    <svg class="w-8 h-8 mb-3 animate-spin" fill="none" viewBox="0 0 24 24"
-                         style="color: var(--color-primary)">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                    </svg>
-                    <p class="text-sm font-medium" style="color: var(--color-text)">Generando sección por sección...</p>
-                    <p class="text-xs mt-1" style="color: var(--color-muted)">
-                        Claude está redactando el documento. Esto puede tardar entre 30 y 90 segundos.
-                    </p>
-                @else
-                    <svg class="w-10 h-10 mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"
-                         style="color: var(--color-border-strong)">
-                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5"
-                              d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
-                    </svg>
-                    <p class="text-sm font-medium" style="color: var(--color-text-secondary)">El documento aparecerá aquí</p>
-                    <p class="text-xs mt-1" style="color: var(--color-muted)">
-                        Completa el formulario y haz clic en "Generar documento"
-                    </p>
-                @endif
+
+                <div class="px-6 py-3 flex-shrink-0"
+                     style="border-bottom: 1px solid var(--color-border)">
+                    <p class="text-xs font-medium" style="color: var(--color-text-secondary)">Caso enviado a procesar</p>
+                </div>
+
+                <div class="flex-1 overflow-y-auto px-6 py-5 min-h-0">
+                    <p class="text-xs leading-relaxed whitespace-pre-wrap" style="color: var(--color-text)">{{ $narracion }}</p>
+                </div>
+
             </div>
 
         </div>
 
-    </div>
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    {{-- ESTADO: EDITOR                                                         --}}
+    {{-- ══════════════════════════════════════════════════════════════════════ --}}
+    @else
+
+        <div class="flex gap-5" style="height: calc(100vh - 140px); overflow: hidden">
+
+            {{-- ── Panel izquierdo ─────────────────────────────────────────── --}}
+            <div class="w-60 flex-shrink-0 space-y-3 overflow-y-auto min-h-0 pr-1">
+
+                <button wire:click="guardar"
+                        wire:loading.attr="disabled"
+                        wire:target="guardar"
+                        class="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-60"
+                        style="background-color: var(--color-primary); color: white;">
+                    <span wire:loading.remove wire:target="guardar">Guardar cambios</span>
+                    <span wire:loading wire:target="guardar">Guardando...</span>
+                </button>
+
+                @if($generacionId)
+                    <a href="{{ route('generacion.descargar', $generacionId) }}" target="_blank"
+                       class="w-full flex items-center justify-center gap-2 h-9 rounded-lg text-xs font-medium hover:opacity-80"
+                       style="border: 1px solid var(--color-border); color: var(--color-muted);">
+                        <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/>
+                        </svg>
+                        Exportar a Word
+                    </a>
+                @endif
+
+                <button wire:click="nuevaGeneracion"
+                        class="w-full flex items-center justify-center h-8 rounded-lg text-xs hover:opacity-80"
+                        style="color: var(--color-muted)">
+                    + Nueva generación
+                </button>
+
+                {{-- Revisiones --}}
+                @php
+                    $revisiones = array_merge(
+                        array_map(fn($a) => str_replace('_', ' ', $a), $advertencias),
+                        array_map(fn($v) => $v['detalle'] ?? '', $validaciones)
+                    );
+                    $revisiones = array_filter($revisiones);
+                @endphp
+                @if(!empty($revisiones))
+                    <div class="rounded-lg p-3" style="background:#fffbeb; border:1px solid #fde68a">
+                        <p class="text-[10px] font-semibold uppercase mb-2" style="color:#92400e">Revisiones pendientes</p>
+                        @foreach($revisiones as $r)
+                            <p class="text-[11px] leading-relaxed" style="color:#92400e">· {{ $r }}</p>
+                        @endforeach
+                    </div>
+                @endif
+
+                {{-- Calificación --}}
+                @if($generacionId)
+                    <div class="bg-white rounded-lg p-3" style="border: 1px solid var(--color-border)">
+                        <p class="text-[10px] font-semibold uppercase mb-2" style="color: var(--color-subtle)">
+                            ¿Qué tan útil fue?
+                        </p>
+                        <div class="flex gap-1">
+                            @for($i = 1; $i <= 5; $i++)
+                                <button wire:click="calificar({{ $i }})"
+                                        class="text-xl leading-none transition-transform hover:scale-110"
+                                        style="color: var(--color-border-strong)"
+                                        title="{{ $i }} estrella{{ $i > 1 ? 's' : '' }}">★</button>
+                            @endfor
+                        </div>
+                    </div>
+                @endif
+
+            </div>
+
+            {{-- ── Panel derecho — TipTap ──────────────────────────────────── --}}
+            <div class="flex-1 min-w-0 min-h-0 overflow-hidden">
+                <div class="bg-white rounded-xl h-full flex flex-col" style="border: 1px solid var(--color-border)"
+                     wire:ignore
+                     x-data="tiptapEditor(@js($documentoHtml ?? ''), 'contenidoEditado')"
+                     x-init="init()"
+                     x-destroy="destroy()">
+
+                    <div class="flex items-center gap-0.5 px-3 py-1.5 flex-wrap flex-shrink-0"
+                         style="border-bottom: 1px solid var(--color-border); background:#fafafa; border-radius: 0.75rem 0.75rem 0 0">
+
+                        <button type="button" @click="cmd('bold')" class="w-7 h-7 rounded flex items-center justify-center text-sm font-bold transition-colors"
+                                :style="active('bold') ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Negrita">B</button>
+                        <button type="button" @click="cmd('italic')" class="w-7 h-7 rounded flex items-center justify-center text-sm italic transition-colors"
+                                :style="active('italic') ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Cursiva">I</button>
+                        <button type="button" @click="cmd('underline')" class="w-7 h-7 rounded flex items-center justify-center text-sm underline transition-colors"
+                                :style="active('underline') ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Subrayado">U</button>
+
+                        <div class="w-px h-4 mx-1" style="background: var(--color-border)"></div>
+
+                        <button type="button" @click="cmd('h1')" class="px-1.5 h-7 rounded flex items-center justify-center text-xs font-bold transition-colors"
+                                :style="active('heading',{level:1}) ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Título 1">H1</button>
+                        <button type="button" @click="cmd('h2')" class="px-1.5 h-7 rounded flex items-center justify-center text-xs font-semibold transition-colors"
+                                :style="active('heading',{level:2}) ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Título 2">H2</button>
+                        <button type="button" @click="cmd('h3')" class="px-1.5 h-7 rounded flex items-center justify-center text-xs transition-colors"
+                                :style="active('heading',{level:3}) ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Título 3">H3</button>
+
+                        <div class="w-px h-4 mx-1" style="background: var(--color-border)"></div>
+
+                        <button type="button" @click="cmd('bulletList')" class="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                                :style="active('bulletList') ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Lista">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16"/>
+                            </svg>
+                        </button>
+                        <button type="button" @click="cmd('orderedList')" class="w-7 h-7 rounded flex items-center justify-center transition-colors"
+                                :style="active('orderedList') ? 'background:var(--color-primary-light);color:var(--color-primary)' : 'color:var(--color-muted)'" title="Lista numerada">
+                            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M4 6h1M4 10h1M4 14h1"/>
+                            </svg>
+                        </button>
+
+                        <div class="w-px h-4 mx-1" style="background: var(--color-border)"></div>
+
+                        <button type="button" @click="cmd('clear')" class="px-1.5 h-7 rounded text-[10px] transition-colors hover:opacity-80"
+                                style="color: var(--color-muted)" title="Quitar formato">Limpiar</button>
+                    </div>
+
+                    <div x-ref="content" class="flex-1 overflow-y-auto px-8 py-6 min-h-0"></div>
+
+                </div>
+            </div>
+
+        </div>
+
+    @endif
 
 </div>

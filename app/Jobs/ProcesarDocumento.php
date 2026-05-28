@@ -22,7 +22,7 @@ class ProcesarDocumento implements ShouldQueue
         $url = rtrim(config('services.ai.url'), '/') . "/api/documentos/{$this->documentoId}/extraer";
 
         try {
-            $response = Http::timeout(120)->post($url);
+            $response = Http::timeout(300)->post($url);
 
             if (!$response->successful()) {
                 Log::error('FastAPI extracción fallida', [

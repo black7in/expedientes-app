@@ -37,6 +37,7 @@
             <x-nav-item route="documentos.index" icon="upload" path-prefix="/documentos">Documentos</x-nav-item>
             <x-nav-item route="personas.index" icon="person" path-prefix="/personas">Partes procesales</x-nav-item>
             <x-nav-item route="generacion.crear" icon="spark" path-prefix="/generacion">Generar documento</x-nav-item>
+            <x-nav-item route="jurisprudencia.consulta" icon="search" path-prefix="/jurisprudencia">Jurisprudencia TSJ</x-nav-item>
 
             @if(auth()->user()->isAdmin())
                 <div class="pt-4 pb-1 px-2">

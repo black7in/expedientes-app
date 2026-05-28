@@ -22,21 +22,6 @@
         </div>
     @endif
 
-    {{-- Banner indexación --}}
-    @if($mensajeIndex)
-        <div class="flex items-center gap-3 px-4 py-3 rounded-lg mb-4 text-xs"
-             style="{{ $indexExito ? 'background-color:#f0fdf4;border:1px solid #bbf7d0;color:#15803d' : 'background-color:#fef2f2;border:1px solid #fecaca;color:#b91c1c' }}">
-            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                @if($indexExito)
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/>
-                @else
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>
-                @endif
-            </svg>
-            {{ $mensajeIndex }}
-        </div>
-    @endif
-
     {{-- Header --}}
     <div class="flex items-start justify-between gap-4 mb-6">
         <div class="flex items-center gap-3 min-w-0">
@@ -64,27 +49,6 @@
                 </div>
             </div>
         </div>
-        @if($documento->isProcesado())
-            <button wire:click="indexar"
-                    wire:loading.attr="disabled"
-                    wire:target="indexar"
-                    class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md transition-opacity hover:opacity-80 disabled:opacity-50 flex-shrink-0"
-                    style="border: 1px solid var(--color-border); color: var(--color-text)">
-                <svg wire:loading.remove wire:target="indexar"
-                     class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
-                </svg>
-                <svg wire:loading wire:target="indexar"
-                     class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                </svg>
-                <span wire:loading.remove wire:target="indexar">
-                    {{ $documento->indexado ? 'Re-indexar' : 'Indexar para RAG' }}
-                </span>
-                <span wire:loading wire:target="indexar">Indexando...</span>
-            </button>
-        @endif
     </div>
 
     {{-- Meta row --}}

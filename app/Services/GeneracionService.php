@@ -175,25 +175,7 @@ class GeneracionService
         return $response->json();
     }
 
-    // ── Indexación ─────────────────────────────────────────────────────────────
-
-    /**
-     * Indexa un documento del estudio para búsqueda semántica.
-     */
-    public function indexarDocumento(string $documentoId, ?string $tipoDoc = null): array
-    {
-        $response = Http::timeout(120)
-            ->post("{$this->baseUrl}/api/documentos/{$documentoId}/indexar", [
-                'tipo_doc' => $tipoDoc,
-            ]);
-
-        if ($response->failed()) {
-            $detalle = $response->json('detail') ?? $response->body();
-            throw new RuntimeException("Error al indexar: {$detalle}");
-        }
-
-        return $response->json();
-    }
+    // ── Indexación de leyes y jurisprudencia (admin) ───────────────────────────
 
     /**
      * Indexa un PDF de ley boliviana (admin).

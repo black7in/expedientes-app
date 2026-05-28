@@ -2,122 +2,105 @@
 
 namespace App\Livewire\Generacion;
 
-use App\Models\Expediente;
-use App\Services\GeneracionService;
+use App\Jobs\GenerarDocumentoJob;
+use App\Models\Generacion;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
 use Livewire\Component;
 
 #[Layout('layouts.app')]
-#[Title('Generar Documento')]
+#[Title('Generar documento')]
 class Crear extends Component
 {
-    // ── Modo: 'expediente' (A) | 'manual' (B) ────────────────────────────────
-    public string $modo = 'manual';
+    // ── Estado del componente (no es el estado DB) ────────────────────────────
+    public string $estado = 'input';  // input | procesando | editor
 
-    // Modo A — desde expediente
-    public ?string    $expediente_id = null;
-    public ?Expediente $expediente   = null;
+    // ── Formulario ────────────────────────────────────────────────────────────
+    public string $narracion    = '';
+    public bool   $incluirJuris = false;
 
-    // ── Configuración de generación ───────────────────────────────────────────
-    public string $plantilla_id   = '';
-    public string $formato_salida = 'estructurado';
+    // ── Seguimiento del job ───────────────────────────────────────────────────
+    public ?string $generacionId = null;
+    public string  $pasoActual   = '';
 
-    // ── Campos formulario ─────────────────────────────────────────────────────
-    public string $demandante          = '';
-    public string $demandado           = '';
-    public string $juzgado             = '';
-    public string $ciudad              = 'Santa Cruz de la Sierra';
-    public string $tipo_proceso        = '';
-    public string $hechos              = '';
-    public string $instrucciones_extra = '';
+    // ── Resultado ─────────────────────────────────────────────────────────────
+    public ?string $documentoHtml    = null;
+    public array   $advertencias     = [];
+    public array   $validaciones     = [];
+    public string  $contenidoEditado = '';
 
-    // ── Estado ────────────────────────────────────────────────────────────────
-    public bool    $generando     = false;
-    public ?string $contenido     = null;
-    public ?string $generacion_id = null;
-    public ?int    $tokens_total  = null;
-    public ?array  $secciones     = null;
-    public ?string $error         = null;
-
-    // ── Datos cargados desde API ──────────────────────────────────────────────
-    public array $plantillas = [];
-
-    public function mount(?Expediente $expediente = null): void
-    {
-        try {
-            $this->plantillas = (new GeneracionService())->getPlantillas();
-            if (!empty($this->plantillas)) {
-                $this->plantilla_id = $this->plantillas[0]['id'];
-            }
-        } catch (\Throwable) {
-            $this->plantillas = [];
-        }
-
-        if ($expediente && $expediente->exists) {
-            $this->expediente    = $expediente->load(['juzgado', 'tipoProceso', 'partes.persona']);
-            $this->expediente_id = (string) $expediente->id;
-            $this->modo          = 'expediente';
-        }
-    }
+    // ── Error ─────────────────────────────────────────────────────────────────
+    public ?string $errorMsg = null;
 
     public function generar(): void
     {
-        $this->validate($this->rules());
+        $this->validate(
+            ['narracion' => 'required|min:100'],
+            ['narracion.min' => 'Describe el caso con más detalle (mínimo 100 caracteres).']
+        );
 
-        $this->generando = true;
-        $this->error     = null;
-        $this->contenido = null;
-        $this->secciones = null;
+        $gen = Generacion::create([
+            'usuario_id'             => (string) auth()->id(),
+            'narracion'              => $this->narracion,
+            'incluir_jurisprudencia' => $this->incluirJuris,
+            'estado'                 => 'analizando',
+        ]);
 
-        try {
-            $resultado = (new GeneracionService())->generar([
-                'usuario_id'         => (string) auth()->id(),
-                'plantilla_id'       => $this->plantilla_id,
-                'formato_salida'     => $this->formato_salida,
-                'expediente_id'      => $this->expediente_id,
-                'demandante'         => $this->demandante,
-                'demandado'          => $this->demandado,
-                'juzgado'            => $this->juzgado,
-                'ciudad'             => $this->ciudad,
-                'tipo_proceso'       => $this->tipo_proceso,
-                'hechos'             => $this->hechos,
-                'instrucciones_extra'=> $this->instrucciones_extra ?: null,
-            ]);
+        $this->generacionId = (string) $gen->id;
+        $this->pasoActual   = 'analizando';
+        $this->estado       = 'procesando';
+        $this->errorMsg     = null;
 
-            $this->contenido     = $resultado['contenido'];
-            $this->generacion_id = $resultado['generacion_id'];
-            $this->secciones     = $resultado['secciones'] ?? [];
-            $this->tokens_total  = ($resultado['tokens_input'] ?? 0) + ($resultado['tokens_output'] ?? 0);
+        GenerarDocumentoJob::dispatch($gen->id, $this->narracion, $this->incluirJuris);
+    }
 
-            // Navegar al Show page para poder editar y regenerar secciones
-            $this->redirect(route('generacion.show', $resultado['generacion_id']), navigate: true);
-        } catch (\Throwable $e) {
-            $this->error = $e->getMessage();
-        } finally {
-            $this->generando = false;
+    public function verificarEstado(): void
+    {
+        if (! $this->generacionId) return;
+
+        $gen = Generacion::find($this->generacionId);
+        if (! $gen) return;
+
+        $this->pasoActual = $gen->estado;
+
+        if ($gen->estado === 'completado') {
+            $this->documentoHtml    = $gen->documento_html;
+            $this->advertencias     = $gen->advertencias ?? [];
+            $this->validaciones     = $gen->validaciones ?? [];
+            $this->contenidoEditado = $gen->documento_html ?? '';
+            $this->estado           = 'editor';
+        } elseif ($gen->estado === 'error') {
+            $this->errorMsg = $gen->error_msg ?? 'Error al generar el documento.';
+            $this->estado   = 'input';
         }
+    }
+
+    public function guardar(): void
+    {
+        if (! $this->generacionId) return;
+
+        Generacion::where('id', $this->generacionId)
+            ->update(['documento_html' => $this->contenidoEditado]);
+
+        $this->documentoHtml = $this->contenidoEditado;
+    }
+
+    public function calificar(int $rating): void
+    {
+        if (! $this->generacionId) return;
+
+        Generacion::where('id', $this->generacionId)
+            ->update(['calificacion' => $rating]);
     }
 
     public function nuevaGeneracion(): void
     {
-        $this->contenido          = null;
-        $this->generacion_id      = null;
-        $this->tokens_total       = null;
-        $this->secciones          = null;
-        $this->error              = null;
-        $this->instrucciones_extra = '';
-    }
-
-    protected function rules(): array
-    {
-        return [
-            'plantilla_id'   => 'required|uuid',
-            'formato_salida' => 'required|in:estructurado,corrido',
-            'demandante'     => 'required|min:3',
-            'demandado'      => 'required|min:3',
-            'hechos'         => 'required|min:50',
-        ];
+        $this->reset([
+            'narracion', 'incluirJuris', 'generacionId', 'pasoActual',
+            'documentoHtml', 'advertencias', 'validaciones',
+            'contenidoEditado', 'errorMsg',
+        ]);
+        $this->estado = 'input';
     }
 
     public function render()

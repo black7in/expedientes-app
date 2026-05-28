@@ -78,7 +78,7 @@ class Upload extends Component
         $nombreOriginal = pathinfo($this->archivo->getClientOriginalName(), PATHINFO_FILENAME);
         $nombreArchivo = $nombreOriginal . '_' . now()->format('Ymd_His') . '.' . $extension;
 
-        $this->archivo->storeAs('documentos', $nombreArchivo, 'local');
+        $this->archivo->storeAs('', $nombreArchivo, 'documentos');
 
         $documento = Documento::create([
             'expediente_id'    => $this->expediente_id ?: null,

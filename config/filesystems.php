@@ -38,6 +38,15 @@ return [
             'report' => false,
         ],
 
+        // Disk dedicado para documentos del estudio (PDF/DOCX que el servicio
+        // FastAPI lee vía volumen Docker en /storage/documentos).
+        'documentos' => [
+            'driver' => 'local',
+            'root'   => storage_path('app/documentos'),
+            'throw'  => false,
+            'report' => false,
+        ],
+
         'public' => [
             'driver' => 'local',
             'root' => storage_path('app/public'),

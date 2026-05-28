@@ -5,7 +5,6 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Concerns\HasUuids;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Generacion extends Model
 {
@@ -16,25 +15,28 @@ class Generacion extends Model
     protected $fillable = [
         'usuario_id',
         'expediente_id',
-        'tipo_documento',
-        'subtipo',
-        'plantilla_id',
-        'formato_salida',
-        'input_formulario',
+        'narracion',
+        'incluir_jurisprudencia',
         'estado',
-        'cancelada',
-        'contenido_actual',
-        'llm_provider',
+        'documento_html',
+        'molde_usado_id',
+        'advertencias',
+        'validaciones',
+        'fuentes',
+        'error_msg',
+        'calificacion',
         'llm_model',
         'tokens_input',
         'tokens_output',
     ];
 
     protected $casts = [
-        'input_formulario' => 'array',
-        'cancelada'        => 'boolean',
-        'tokens_input'     => 'integer',
-        'tokens_output'    => 'integer',
+        'incluir_jurisprudencia' => 'boolean',
+        'advertencias'           => 'array',
+        'validaciones'           => 'array',
+        'fuentes'                => 'array',
+        'tokens_input'           => 'integer',
+        'tokens_output'          => 'integer',
     ];
 
     public function usuario(): BelongsTo
@@ -45,15 +47,5 @@ class Generacion extends Model
     public function expediente(): BelongsTo
     {
         return $this->belongsTo(Expediente::class);
-    }
-
-    public function plantilla(): BelongsTo
-    {
-        return $this->belongsTo(Plantilla::class);
-    }
-
-    public function secciones(): HasMany
-    {
-        return $this->hasMany(GeneracionSeccion::class)->orderBy('orden');
     }
 }

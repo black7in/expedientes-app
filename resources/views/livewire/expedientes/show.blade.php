@@ -19,7 +19,7 @@
             <x-estado-badge :estado="$expediente->estado" />
         </div>
         <div class="flex items-center gap-2 flex-shrink-0">
-            <a href="{{ route('generacion.desde-expediente', $expediente) }}" wire:navigate
+            <a href="{{ route('generacion.crear') }}" wire:navigate
                class="inline-flex items-center gap-1.5 h-8 px-3 text-xs font-medium rounded-md transition-opacity hover:opacity-90"
                style="border: 1px solid var(--color-border); color: var(--color-text)">
                 <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
