@@ -34,13 +34,13 @@
         async buscar() {
             const pregunta = this.preguntaInput.trim();
             if (pregunta.length < 10) { this.validationError = 'Mínimo 10 caracteres.'; return; }
-            if (pregunta.length > 500) { this.validationError = 'Máximo 500 caracteres.'; return; }
+            if (pregunta.length > 2000) { this.validationError = 'Máximo 2000 caracteres.'; return; }
             this.validationError = '';
             this.estado     = 'buscando';
             this.pasoActual = '';
             this.pasosVistos = [];
 
-            const url = '{{ route('jurisprudencia.stream') }}?pregunta=' + encodeURIComponent(pregunta);
+            const url = '{{ config('services.tsj.public_url') }}/consulta/stream?pregunta=' + encodeURIComponent(pregunta);
             this.source = new EventSource(url);
 
             this.source.onmessage = async (e) => {
@@ -328,7 +328,7 @@
                             placeholder="Ej: ¿Cuáles son los criterios para la inamovilidad laboral de una trabajadora embarazada? ¿Qué dice el TSJ Bolivia sobre el despido durante el estado de gestación?"
                             class="flex-1 w-full px-5 py-4 resize-none focus:outline-none text-xs leading-relaxed"
                             style="color: var(--color-text); background: transparent"
-                            maxlength="500"></textarea>
+                            maxlength="2000"></textarea>
                     </div>
 
                     {{-- Barra inferior --}}
@@ -336,7 +336,7 @@
                          style="border: 1px solid var(--color-border)">
 
                         <span class="text-[11px] flex-shrink-0" style="color: var(--color-muted)">
-                            <span x-text="preguntaInput.length"></span>/500
+                            <span x-text="preguntaInput.length"></span>/2000
                             <template x-if="validationError">
                                 <span style="color: #dc2626"> · <span x-text="validationError"></span></span>
                             </template>
@@ -347,7 +347,7 @@
                         <div class="flex-1"></div>
 
                         <button @click="buscar()"
-                                :disabled="preguntaInput.trim().length < 10"
+                                :disabled="preguntaInput.trim().length < 10 || preguntaInput.trim().length > 2000"
                                 class="flex items-center gap-2 h-9 px-5 rounded-lg text-xs font-medium hover:opacity-90 disabled:opacity-50 flex-shrink-0"
                                 style="background-color: var(--color-primary); color: white;">
                             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

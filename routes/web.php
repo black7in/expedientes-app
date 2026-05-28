@@ -70,39 +70,6 @@ Route::middleware(['auth'])->group(function () {
         })->name('descargar');
     });
 
-    // Jurisprudencia TSJ — proxy SSE + interfaz
-    Route::get('/jurisprudencia/stream', function (Illuminate\Http\Request $request) {
-        $pregunta = $request->get('pregunta', '');
-        $tsjUrl   = config('services.tsj.url');
-
-        return response()->stream(function () use ($pregunta, $tsjUrl) {
-            try {
-                $response = \Illuminate\Support\Facades\Http::withOptions(['stream' => true])
-                    ->timeout(180)
-                    ->get("{$tsjUrl}/consulta/stream", ['pregunta' => $pregunta]);
-
-                $body = $response->getBody();
-                while (! $body->eof()) {
-                    $chunk = $body->read(512);
-                    if ($chunk) {
-                        echo $chunk;
-                        if (ob_get_level() > 0) ob_flush();
-                        flush();
-                    }
-                }
-            } catch (\Exception $e) {
-                echo 'data: ' . json_encode(['tipo' => 'error', 'mensaje' => 'Servicio de jurisprudencia no disponible.']) . "\n\n";
-                if (ob_get_level() > 0) ob_flush();
-                flush();
-            }
-        }, 200, [
-            'Content-Type'      => 'text/event-stream',
-            'Cache-Control'     => 'no-cache, no-store',
-            'X-Accel-Buffering' => 'no',
-            'Connection'        => 'keep-alive',
-        ]);
-    })->name('jurisprudencia.stream');
-
     Route::get('/jurisprudencia', \App\Livewire\Jurisprudencia\Consulta::class)->name('jurisprudencia.consulta');
 
     // Administración (solo admin)

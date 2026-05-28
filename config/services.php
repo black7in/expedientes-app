@@ -40,7 +40,8 @@ return [
     ],
 
     'tsj' => [
-        'url' => env('TSJ_SERVICE_URL', 'http://tsj_jurisprudencia:8000'),
+        'url'        => env('TSJ_SERVICE_URL', 'http://tsj_jurisprudencia:8000'),
+        'public_url' => env('TSJ_PUBLIC_URL', 'http://localhost:8002'),
     ],
 
 ];
