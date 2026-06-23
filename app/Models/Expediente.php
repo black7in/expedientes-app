@@ -19,6 +19,7 @@ class Expediente extends Model
         'abogado_id',
         'estado',
         'fecha_inicio',
+        'resumen_anonimizado',
     ];
 
     protected $casts = [

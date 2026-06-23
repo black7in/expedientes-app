@@ -3,6 +3,7 @@
 namespace App\Livewire\Generacion;
 
 use App\Jobs\GenerarDocumentoJob;
+use App\Models\Expediente;
 use App\Models\Generacion;
 use Livewire\Attributes\Layout;
 use Livewire\Attributes\Title;
@@ -12,12 +13,18 @@ use Livewire\Component;
 #[Title('Generar documento')]
 class Crear extends Component
 {
-    // ── Estado del componente (no es el estado DB) ────────────────────────────
+    // ── Estado del componente ─────────────────────────────────────────────────
     public string $estado = 'input';  // input | procesando | editor
 
     // ── Formulario ────────────────────────────────────────────────────────────
     public string $narracion    = '';
     public bool   $incluirJuris = false;
+
+    // ── D1: Expediente vinculado ──────────────────────────────────────────────
+    public ?string $expedienteId          = null;
+    public string  $expedienteBusqueda    = '';
+    public array   $expedientesResultados = [];
+    public ?array  $expedienteSeleccionado = null;
 
     // ── Seguimiento del job ───────────────────────────────────────────────────
     public ?string $generacionId = null;
@@ -32,6 +39,50 @@ class Crear extends Component
     // ── Error ─────────────────────────────────────────────────────────────────
     public ?string $errorMsg = null;
 
+    // ── D1: Buscar expedientes (typeahead) ────────────────────────────────────
+    public function updatedExpedienteBusqueda(string $valor): void
+    {
+        if (mb_strlen(trim($valor)) < 2) {
+            $this->expedientesResultados = [];
+            return;
+        }
+
+        $this->expedientesResultados = Expediente::with(['partes.persona'])
+            ->where(function ($q) use ($valor) {
+                $q->where('numero_expediente', 'ilike', "%{$valor}%");
+            })
+            ->orWhereHas('partes.persona', fn($q) => $q->where('nombre_completo', 'ilike', "%{$valor}%"))
+            ->orderByDesc('created_at')
+            ->limit(6)
+            ->get()
+            ->map(fn($exp) => [
+                'id'               => (string) $exp->id,
+                'numero'           => $exp->numero_expediente ?? 'Sin número',
+                'estado'           => $exp->estado,
+                'partes_resumen'   => $exp->partes->take(2)
+                    ->map(fn($p) => $p->persona->nombre_completo ?? '?')
+                    ->implode(' / '),
+            ])
+            ->toArray();
+    }
+
+    public function seleccionarExpediente(string $id, string $numero, string $partesResumen): void
+    {
+        $this->expedienteId          = $id;
+        $this->expedienteSeleccionado = ['numero' => $numero, 'partes' => $partesResumen];
+        $this->expedienteBusqueda    = '';
+        $this->expedientesResultados = [];
+    }
+
+    public function limpiarExpediente(): void
+    {
+        $this->expedienteId           = null;
+        $this->expedienteSeleccionado = null;
+        $this->expedienteBusqueda     = '';
+        $this->expedientesResultados  = [];
+    }
+
+    // ── Generar ───────────────────────────────────────────────────────────────
     public function generar(): void
     {
         $this->validate(
@@ -41,6 +92,7 @@ class Crear extends Component
 
         $gen = Generacion::create([
             'usuario_id'             => (string) auth()->id(),
+            'expediente_id'          => $this->expedienteId,
             'narracion'              => $this->narracion,
             'incluir_jurisprudencia' => $this->incluirJuris,
             'estado'                 => 'analizando',
@@ -51,7 +103,7 @@ class Crear extends Component
         $this->estado       = 'procesando';
         $this->errorMsg     = null;
 
-        GenerarDocumentoJob::dispatch($gen->id, $this->narracion, $this->incluirJuris);
+        GenerarDocumentoJob::dispatch($gen->id, $this->narracion, $this->incluirJuris, $this->expedienteId);
     }
 
     public function verificarEstado(): void
@@ -99,6 +151,7 @@ class Crear extends Component
             'narracion', 'incluirJuris', 'generacionId', 'pasoActual',
             'documentoHtml', 'advertencias', 'validaciones',
             'contenidoEditado', 'errorMsg',
+            'expedienteId', 'expedienteBusqueda', 'expedientesResultados', 'expedienteSeleccionado',
         ]);
         $this->estado = 'input';
     }

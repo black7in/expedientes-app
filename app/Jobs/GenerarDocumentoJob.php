@@ -18,9 +18,10 @@ class GenerarDocumentoJob implements ShouldQueue
     public int $tries   = 1;
 
     public function __construct(
-        public string $generacionId,
-        public string $narracion,
-        public bool   $incluirJurisprudencia,
+        public string  $generacionId,
+        public string  $narracion,
+        public bool    $incluirJurisprudencia,
+        public ?string $expedienteId = null,
     ) {}
 
     public function handle(GeneradorService $service): void
@@ -34,7 +35,7 @@ class GenerarDocumentoJob implements ShouldQueue
         $recuperacion = $service->recuperar($analisis, $this->incluirJurisprudencia);
 
         $gen->update(['estado' => 'generando']);
-        $resultado = $service->generar($analisis, $recuperacion);
+        $resultado = $service->generar($analisis, $recuperacion, $this->expedienteId);
 
         // Construir fuentes a partir del resultado de recuperación
         $fuentes = [

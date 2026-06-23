@@ -24,8 +24,8 @@
             </div>
             <div class="bg-white rounded-lg px-5 py-4" style="border: 1px solid var(--color-border)">
                 <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: var(--color-subtle)">Autos Supremos</p>
-                <p class="text-2xl font-bold" style="color: var(--color-text)">{{ $stats['autos_count'] ?? 0 }}</p>
-                <p class="text-[11px] mt-0.5" style="color: var(--color-muted)">{{ number_format($stats['juris_chunks'] ?? 0) }} fragmentos</p>
+                <p class="text-2xl font-bold" style="color: var(--color-text)">{{ number_format($tsjStats['resoluciones'] ?? 0) }}</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--color-muted)">{{ number_format($tsjStats['chunks'] ?? 0) }} fragmentos</p>
             </div>
             <div class="bg-white rounded-lg px-5 py-4" style="border: 1px solid var(--color-border)">
                 <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: var(--color-subtle)">Moldes de memoriales</p>
@@ -129,101 +129,75 @@
 
     {{-- ── TAB: JURISPRUDENCIA ─────────────────────────────────────────────────── --}}
     @if($tab === 'jurisprudencia')
-        <div class="flex gap-5 items-start">
-            <div class="w-80 flex-shrink-0">
-                <div class="bg-white rounded-lg p-4" style="border: 1px solid var(--color-border)">
-                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-3" style="color: var(--color-subtle)">Agregar Auto Supremo</p>
 
-                    @if($mensajeAuto)
-                        <div class="flex items-start gap-2 px-3 py-2 rounded-md mb-3 text-xs"
-                             style="{{ $exitoAuto ? 'background:#f0fdf4;border:1px solid #bbf7d0;color:#15803d' : 'background:#fef2f2;border:1px solid #fecaca;color:#b91c1c' }}">
-                            {{ $mensajeAuto }}
-                        </div>
-                    @endif
-
-                    <div class="space-y-3">
-                        <div>
-                            <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Número de Auto Supremo *</label>
-                            <input type="text" wire:model="numeroAuto" placeholder="Ej: AS 123/2023"
-                                   class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                                   style="border: 1px solid var(--color-border); background: white;">
-                            @error('numeroAuto') <p class="text-[11px] mt-0.5 text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <div class="grid grid-cols-2 gap-2">
-                            <div>
-                                <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Materia *</label>
-                                <select wire:model="materiaAuto" class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                                        style="border: 1px solid var(--color-border); background: white;">
-                                    <option value="civil">Civil</option>
-                                    <option value="comercial">Comercial</option>
-                                    <option value="familiar">Familiar</option>
-                                    <option value="laboral">Laboral</option>
-                                    <option value="penal">Penal</option>
-                                </select>
-                            </div>
-                            <div>
-                                <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Fecha</label>
-                                <input type="date" wire:model="fechaAuto" class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                                       style="border: 1px solid var(--color-border); background: white;">
-                            </div>
-                        </div>
-                        <div>
-                            <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Sala</label>
-                            <input type="text" wire:model="salaAuto" placeholder="Ej: Sala Civil Primera"
-                                   class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
-                                   style="border: 1px solid var(--color-border); background: white;">
-                        </div>
-                        <div>
-                            <label class="block text-[11px] mb-1" style="color: var(--color-muted)">Texto del Auto Supremo *</label>
-                            <textarea wire:model="textoAuto" rows="8" placeholder="Pega aquí el texto completo del Auto Supremo..."
-                                      class="w-full text-xs rounded-md px-3 py-2 focus:outline-none resize-none"
-                                      style="border: 1px solid var(--color-border); background: white;"></textarea>
-                            @error('textoAuto') <p class="text-[11px] mt-0.5 text-red-600">{{ $message }}</p> @enderror
-                        </div>
-                        <button wire:click="indexarJurisprudencia" wire:loading.attr="disabled" wire:target="indexarJurisprudencia"
-                                class="w-full flex items-center justify-center gap-2 py-2 rounded-md text-xs font-medium disabled:opacity-50"
-                                style="background-color: var(--color-primary); color: white;">
-                            <svg wire:loading wire:target="indexarJurisprudencia" class="w-3.5 h-3.5 animate-spin" fill="none" viewBox="0 0 24 24">
-                                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
-                                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z"/>
-                            </svg>
-                            <span wire:loading.remove wire:target="indexarJurisprudencia">Indexar Auto Supremo</span>
-                            <span wire:loading wire:target="indexarJurisprudencia">Indexando...</span>
-                        </button>
-                    </div>
-                </div>
+        @if(empty($tsjStats))
+            <div class="flex items-start gap-2 px-4 py-3 rounded-lg text-xs mb-5"
+                 style="background:#fef2f2;border:1px solid #fecaca;color:#b91c1c">
+                <svg class="w-3.5 h-3.5 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                          d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+                </svg>
+                Servicio de jurisprudencia TSJ no disponible. Verificá que el contenedor esté corriendo.
             </div>
+        @endif
 
-            <div class="flex-1 min-w-0">
-                <div class="bg-white rounded-lg" style="border: 1px solid var(--color-border)">
-                    <div class="px-5 py-3.5" style="border-bottom: 1px solid var(--color-border)">
-                        <p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--color-muted)">
-                            Autos Supremos indexados ({{ count($autos) }})
-                        </p>
-                    </div>
-                    @forelse($autos as $auto)
-                        <div class="flex items-center justify-between px-5 py-3"
-                             @if(!$loop->first) style="border-top: 1px solid var(--color-border)" @endif>
-                            <div>
-                                <p class="text-xs font-medium font-mono" style="color: var(--color-text)">{{ $auto['numero_auto'] }}</p>
-                                <div class="flex items-center gap-2 mt-0.5">
-                                    <span class="text-[11px] capitalize" style="color: var(--color-muted)">{{ $auto['materia'] }}</span>
-                                    @if($auto['fecha'])
-                                        <span style="color: var(--color-border-strong)">·</span>
-                                        <span class="text-[11px]" style="color: var(--color-muted)">{{ $auto['fecha'] }}</span>
-                                    @endif
-                                </div>
-                            </div>
-                            <span class="text-[11px]" style="color: var(--color-muted)">{{ $auto['chunks'] }} fragmentos</span>
-                        </div>
-                    @empty
-                        <div class="py-12 text-center">
-                            <p class="text-xs" style="color: var(--color-muted)">No hay jurisprudencia indexada aún</p>
-                        </div>
-                    @endforelse
-                </div>
+        {{-- Stats cards --}}
+        <div class="grid grid-cols-3 gap-4 mb-6">
+            <div class="bg-white rounded-lg px-5 py-4" style="border: 1px solid var(--color-border)">
+                <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: var(--color-subtle)">Resoluciones indexadas</p>
+                <p class="text-2xl font-bold" style="color: var(--color-text)">{{ number_format($tsjStats['resoluciones'] ?? 0) }}</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--color-muted)">Autos Supremos del TSJ Bolivia</p>
+            </div>
+            <div class="bg-white rounded-lg px-5 py-4" style="border: 1px solid var(--color-border)">
+                <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: var(--color-subtle)">Fragmentos vectorizados</p>
+                <p class="text-2xl font-bold" style="color: var(--color-text)">{{ number_format($tsjStats['chunks'] ?? 0) }}</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--color-muted)">Índice semántico (pgvector)</p>
+            </div>
+            <div class="bg-white rounded-lg px-5 py-4" style="border: 1px solid var(--color-border)">
+                <p class="text-[10px] font-semibold uppercase tracking-wide mb-1" style="color: var(--color-subtle)">Fuente</p>
+                <p class="text-sm font-semibold mt-1" style="color: var(--color-text)">GÉNESIS TSJ</p>
+                <p class="text-[11px] mt-0.5" style="color: var(--color-muted)">Indexación automática al consultar</p>
             </div>
         </div>
+
+        {{-- Breakdown por materia --}}
+        <div class="bg-white rounded-lg" style="border: 1px solid var(--color-border)">
+            <div class="px-5 py-3.5 flex items-center justify-between" style="border-bottom: 1px solid var(--color-border)">
+                <p class="text-xs font-semibold uppercase tracking-wide" style="color: var(--color-muted)">Resoluciones por materia</p>
+                <a href="{{ config('services.tsj.public_url') }}" target="_blank"
+                   class="text-[11px] flex items-center gap-1 hover:opacity-70 transition-opacity"
+                   style="color: var(--color-primary)">
+                    Ir al buscador
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                              d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                    </svg>
+                </a>
+            </div>
+            @forelse($tsjStats['por_materia'] ?? [] as $fila)
+                @php
+                    $total = $tsjStats['resoluciones'] ?? 1;
+                    $pct   = $total > 0 ? round($fila['count'] / $total * 100) : 0;
+                @endphp
+                <div class="flex items-center gap-4 px-5 py-3"
+                     @if(!$loop->first) style="border-top: 1px solid var(--color-border)" @endif>
+                    <div class="w-28 flex-shrink-0">
+                        <p class="text-xs font-medium" style="color: var(--color-text)">{{ $fila['materia'] }}</p>
+                    </div>
+                    <div class="flex-1 h-1.5 rounded-full" style="background: var(--color-border)">
+                        <div class="h-1.5 rounded-full" style="width: {{ $pct }}%; background-color: var(--color-primary)"></div>
+                    </div>
+                    <span class="w-16 text-right text-[11px]" style="color: var(--color-muted)">
+                        {{ number_format($fila['count']) }}
+                    </span>
+                </div>
+            @empty
+                <div class="py-10 text-center">
+                    <p class="text-xs" style="color: var(--color-muted)">Sin datos disponibles</p>
+                </div>
+            @endforelse
+        </div>
+
     @endif
 
     {{-- ── TAB: PLANTILLAS ─────────────────────────────────────────────────────── --}}

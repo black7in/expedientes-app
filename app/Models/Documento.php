@@ -19,10 +19,13 @@ class Documento extends Model
         'tipo_documento',
         'estado_extraccion',
         'texto_extraido',
+        'entidades',
+        'texto_anonimizado',
     ];
 
     protected $casts = [
         'texto_extraido' => 'array',
+        'entidades'      => 'array',
     ];
 
     public function expediente(): BelongsTo
@@ -43,5 +46,35 @@ class Documento extends Model
     public function isProcesado(): bool
     {
         return $this->estado_extraccion === 'procesado';
+    }
+
+    public function isPendienteRevision(): bool
+    {
+        return $this->estado_extraccion === 'pendiente_revision';
+    }
+
+    public function isConfirmado(): bool
+    {
+        return $this->estado_extraccion === 'confirmado';
+    }
+
+    /** Texto extraído y NER listo — pendiente revisión o ya confirmado */
+    public function isRevisable(): bool
+    {
+        return in_array($this->estado_extraccion, ['pendiente_revision', 'confirmado'], true);
+    }
+
+    /** @deprecated usar isRevisable() o isConfirmado() */
+    public function isAnonimizado(): bool
+    {
+        return $this->estado_extraccion === 'anonimizado';
+    }
+
+    public function getEntidadesConfirmadas(): array
+    {
+        return array_values(array_filter(
+            $this->entidades ?? [],
+            fn($e) => $e['confirmado'] ?? false
+        ));
     }
 }

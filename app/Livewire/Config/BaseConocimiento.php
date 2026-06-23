@@ -36,10 +36,11 @@ class BaseConocimiento extends Component
     public bool    $exitoAuto     = false;
 
     // ── Stats ─────────────────────────────────────────────────────────────────
-    public array $stats  = [];
-    public array $leyes  = [];
-    public array $autos  = [];
-    public array $moldes = [];
+    public array $stats    = [];
+    public array $leyes    = [];
+    public array $autos    = [];
+    public array $moldes   = [];
+    public array $tsjStats = [];
 
     // ── Plantillas ────────────────────────────────────────────────────────────
     public string  $plantillaVista            = 'lista';
@@ -73,6 +74,14 @@ class BaseConocimiento extends Component
             $this->moldes  = $data['moldes'] ?? [];
         } catch (\Throwable) {
             $this->stats = [];
+        }
+
+        try {
+            $response = \Illuminate\Support\Facades\Http::timeout(5)
+                ->get(config('services.tsj.url') . '/stats');
+            $this->tsjStats = $response->successful() ? $response->json() : [];
+        } catch (\Throwable) {
+            $this->tsjStats = [];
         }
     }
 

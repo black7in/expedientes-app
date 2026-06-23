@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Documento;
 use Illuminate\Support\Facades\Http;
 use RuntimeException;
 
@@ -44,12 +45,27 @@ class GeneradorService
         return $response->json();
     }
 
-    public function generar(array $analisis, array $recuperacion): array
+    public function generar(array $analisis, array $recuperacion, ?string $expedienteId = null): array
     {
+        $docsExpediente = [];
+
+        if ($expedienteId) {
+            $expediente = \App\Models\Expediente::find($expedienteId);
+
+            if ($expediente?->resumen_anonimizado) {
+                $docsExpediente = [[
+                    'nombre' => 'Resumen del expediente',
+                    'tipo'   => 'resumen',
+                    'texto_anonimizado' => $expediente->resumen_anonimizado,
+                ]];
+            }
+        }
+
         $response = Http::timeout(120)
             ->post("{$this->base}/generacion", [
-                'analisis'    => $analisis,
-                'recuperacion' => $recuperacion,
+                'analisis'        => $analisis,
+                'recuperacion'    => $recuperacion,
+                'docs_expediente' => $docsExpediente,
             ]);
 
         if ($response->failed()) {

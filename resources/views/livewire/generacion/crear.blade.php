@@ -71,6 +71,64 @@
                     </ul>
                 </div>
 
+                {{-- D1: Expediente vinculado --}}
+                <div class="bg-white rounded-lg p-4" style="border: 1px solid var(--color-border)">
+                    <p class="text-[10px] font-semibold uppercase tracking-wide mb-2" style="color: var(--color-subtle)">
+                        Vincular expediente
+                        <span class="font-normal normal-case ml-1" style="color: var(--color-muted)">(opcional)</span>
+                    </p>
+
+                    @if($expedienteSeleccionado)
+                        {{-- Expediente seleccionado --}}
+                        <div class="flex items-start justify-between gap-2 rounded-md p-2.5"
+                             style="background: var(--color-sidebar-active); border: 1px solid var(--color-primary-light)">
+                            <div class="min-w-0">
+                                <p class="text-[11px] font-semibold font-mono" style="color: var(--color-primary)">
+                                    Exp. {{ $expedienteSeleccionado['numero'] }}
+                                </p>
+                                <p class="text-[10px] truncate mt-0.5" style="color: var(--color-muted)">
+                                    {{ $expedienteSeleccionado['partes'] }}
+                                </p>
+                            </div>
+                            <button wire:click="limpiarExpediente"
+                                    class="text-[10px] flex-shrink-0 hover:opacity-70"
+                                    style="color: var(--color-muted)">✕</button>
+                        </div>
+                        <p class="text-[10px] mt-1.5" style="color: var(--color-muted)">
+                            Los documentos del expediente se usarán como contexto.
+                        </p>
+                    @else
+                        {{-- Typeahead --}}
+                        <div class="relative" x-data>
+                            <input wire:model.live.debounce.300ms="expedienteBusqueda"
+                                   type="text"
+                                   placeholder="Buscar por número o parte..."
+                                   class="w-full text-xs rounded-md px-3 py-2 focus:outline-none"
+                                   style="border: 1px solid var(--color-border); color: var(--color-text); background: white"/>
+
+                            @if(!empty($expedientesResultados))
+                                <div class="absolute left-0 right-0 top-full mt-1 z-50 rounded-md shadow-lg overflow-hidden"
+                                     style="border: 1px solid var(--color-border); background: white">
+                                    @foreach($expedientesResultados as $exp)
+                                        <button wire:click="seleccionarExpediente('{{ $exp['id'] }}', '{{ addslashes($exp['numero']) }}', '{{ addslashes($exp['partes_resumen']) }}')"
+                                                class="w-full text-left px-3 py-2.5 hover:opacity-80 transition-colors"
+                                                style="border-bottom: 1px solid var(--color-border); background: white">
+                                            <p class="text-[11px] font-semibold font-mono" style="color: var(--color-text)">
+                                                Exp. {{ $exp['numero'] }}
+                                            </p>
+                                            <p class="text-[10px] truncate" style="color: var(--color-muted)">
+                                                {{ $exp['partes_resumen'] ?: 'Sin partes registradas' }}
+                                            </p>
+                                        </button>
+                                    @endforeach
+                                </div>
+                            @elseif(mb_strlen($expedienteBusqueda) >= 2)
+                                <p class="text-[10px] mt-1.5" style="color: var(--color-muted)">Sin resultados.</p>
+                            @endif
+                        </div>
+                    @endif
+                </div>
+
                 {{-- Error --}}
                 @if($errorMsg)
                     <div class="rounded-lg px-3 py-2.5 text-xs"
@@ -341,7 +399,6 @@
                 <div class="bg-white rounded-xl h-full flex flex-col" style="border: 1px solid var(--color-border)"
                      wire:ignore
                      x-data="tiptapEditor(@js($documentoHtml ?? ''), 'contenidoEditado')"
-                     x-init="init()"
                      x-destroy="destroy()">
 
                     <div class="flex items-center gap-0.5 px-3 py-1.5 flex-wrap flex-shrink-0"
