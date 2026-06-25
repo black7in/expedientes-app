@@ -110,7 +110,8 @@
     </div>
 
     {{-- Layout principal --}}
-    <div class="flex gap-5 items-start">
+    <div class="flex gap-5 items-start"
+         x-data="{ modoEdicion: null, selInicio: 0, selFin: 0, selTexto: '' }">
 
         {{-- LEFT — Entidades --}}
         <div class="w-72 flex-shrink-0 space-y-4">
@@ -211,6 +212,11 @@
                                             Rol
                                         </button>
                                     @endif
+                                    <button @click="modoEdicion = '{{ $ent['id'] }}'; selTexto = ''; selInicio = 0; selFin = 0; window.getSelection()?.removeAllRanges()"
+                                            class="text-[10px] px-2 py-0.5 rounded hover:opacity-80"
+                                            style="background-color: #e0e7ff; color: #3730a3">
+                                        Editar
+                                    </button>
                                     <button wire:click="eliminarEntidad('{{ $ent['id'] }}')"
                                             wire:confirm="¿Eliminar esta entidad como falso positivo?"
                                             class="text-[10px] px-2 py-0.5 rounded hover:opacity-80"
@@ -325,45 +331,107 @@
             <div class="bg-white rounded-lg" style="border: 1px solid var(--color-border)">
 
                 @if($documento->isRevisable())
-                    <div x-data="{ tab: 'anon' }">
-                        <div class="flex items-center px-5 py-0" style="border-bottom: 1px solid var(--color-border)">
+                    <div x-data="{ tab: 'resaltado' }">
+
+                        {{-- Banner modo edición --}}
+                        <div x-show="modoEdicion !== null"
+                             class="flex items-center justify-between px-4 py-2.5 text-xs"
+                             style="background-color:#eff6ff;border-bottom:1px solid #bfdbfe;color:#1e40af">
+                            <span class="font-medium">Seleccioná el texto correcto en el documento (click y arrastrá)</span>
+                            <button @click="modoEdicion = null; selTexto = ''; window.getSelection()?.removeAllRanges()"
+                                    class="text-[10px] px-2 py-0.5 rounded hover:opacity-80 font-medium"
+                                    style="background-color:#dbeafe;color:#1e40af">
+                                Cancelar
+                            </button>
+                        </div>
+
+                        {{-- Tabs (ocultos en modo edición) --}}
+                        <div x-show="modoEdicion === null"
+                             class="flex items-center px-5 py-0" style="border-bottom: 1px solid var(--color-border)">
+                            <button @click="tab = 'resaltado'"
+                                    class="px-4 py-3 text-xs font-medium transition-colors"
+                                    :class="tab === 'resaltado' ? 'border-b-2 border-current' : 'opacity-50'"
+                                    style="color: var(--color-primary)">
+                                Texto original (resaltado)
+                            </button>
                             <button @click="tab = 'anon'"
                                     class="px-4 py-3 text-xs font-medium transition-colors"
                                     :class="tab === 'anon' ? 'border-b-2 border-current' : 'opacity-50'"
                                     style="color: var(--color-primary)">
                                 Texto anonimizado
                             </button>
-                            <button @click="tab = 'original'"
-                                    class="px-4 py-3 text-xs font-medium transition-colors"
-                                    :class="tab === 'original' ? 'border-b-2 border-current' : 'opacity-50'"
-                                    style="color: var(--color-primary)">
-                                Texto original (resaltado)
-                            </button>
                         </div>
 
                         <div class="px-5 py-4">
-                            <div x-show="tab === 'anon'">
-                                <pre class="text-xs leading-relaxed whitespace-pre-wrap font-sans"
-                                     style="color: var(--color-text)">{{ $documento->texto_anonimizado }}</pre>
+
+                            {{-- Contenido tabs (oculto en modo edición) --}}
+                            <div x-show="modoEdicion === null">
+                                <div x-show="tab === 'resaltado'">
+                                    <p class="text-xs leading-relaxed font-sans" style="color: var(--color-text)">
+                                        {!! $this->textoResaltado !!}
+                                    </p>
+                                    @if(!empty($documento->entidades))
+                                        <div class="flex flex-wrap gap-2 mt-4 pt-3" style="border-top: 1px solid var(--color-border)">
+                                            @foreach(['PER' => 'Persona', 'CI' => 'C. Identidad', 'NIT' => 'NIT', 'TEL' => 'Teléfono', 'DIR' => 'Dirección'] as $tipo => $label)
+                                                @if(collect($documento->entidades)->where('tipo', $tipo)->count())
+                                                    <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
+                                                          style="background-color: {{ $colores[$tipo] }}; color: var(--color-text)">
+                                                        {{ $label }}
+                                                    </span>
+                                                @endif
+                                            @endforeach
+                                        </div>
+                                    @endif
+                                </div>
+                                <div x-show="tab === 'anon'" x-cloak>
+                                    <pre class="text-xs leading-relaxed whitespace-pre-wrap font-sans"
+                                         style="color: var(--color-text)">{{ $documento->texto_anonimizado }}</pre>
+                                </div>
                             </div>
 
-                            <div x-show="tab === 'original'" x-cloak>
-                                <p class="text-xs leading-relaxed font-sans" style="color: var(--color-text)">
-                                    {!! $this->textoResaltado !!}
-                                </p>
-                                @if(!empty($documento->entidades))
-                                    <div class="flex flex-wrap gap-2 mt-4 pt-3" style="border-top: 1px solid var(--color-border)">
-                                        @foreach(['PER' => 'Persona', 'CI' => 'C. Identidad', 'NIT' => 'NIT', 'TEL' => 'Teléfono', 'DIR' => 'Dirección'] as $tipo => $label)
-                                            @if(collect($documento->entidades)->where('tipo', $tipo)->count())
-                                                <span class="inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full"
-                                                      style="background-color: {{ $colores[$tipo] }}; color: var(--color-text)">
-                                                    {{ $label }}
-                                                </span>
-                                            @endif
-                                        @endforeach
+                            {{-- Modo edición: texto plano seleccionable --}}
+                            <div x-show="modoEdicion !== null" x-cloak>
+                                {{-- Preview de selección --}}
+                                <div x-show="selTexto.length > 0"
+                                     class="mb-3 p-2.5 rounded-md text-xs"
+                                     style="background-color:#f0fdf4;border:1px solid #bbf7d0">
+                                    <span style="color:var(--color-muted)">Seleccionado:</span>
+                                    <strong class="ml-1" x-text="selTexto.length > 60 ? selTexto.slice(0,60) + '...' : selTexto"
+                                            style="color:#166534"></strong>
+                                    <div class="flex gap-2 mt-2">
+                                        <button @click="$wire.editarSpan(modoEdicion, selInicio, selFin, selTexto); modoEdicion = null; selTexto = ''"
+                                                class="text-[10px] px-2 py-1 rounded font-medium hover:opacity-80"
+                                                style="background-color:#dcfce7;color:#166534">
+                                            Confirmar
+                                        </button>
+                                        <button @click="selTexto = ''; window.getSelection()?.removeAllRanges()"
+                                                class="text-[10px] px-2 py-1 rounded hover:opacity-80"
+                                                style="background-color:var(--color-border);color:var(--color-text-secondary)">
+                                            Limpiar
+                                        </button>
                                     </div>
-                                @endif
+                                </div>
+                                <p x-show="selTexto.length === 0" class="text-xs mb-2" style="color:var(--color-muted)">
+                                    Click y arrastrá sobre el texto para marcar el texto correcto
+                                </p>
+
+                                {{-- Texto plano para selección --}}
+                                <pre x-ref="textoEdit"
+                                     class="text-xs leading-relaxed whitespace-pre-wrap font-sans"
+                                     style="color:var(--color-text);user-select:text;cursor:text"
+                                     @mouseup="
+                                         const sel = window.getSelection();
+                                         if (!sel || sel.isCollapsed || !sel.toString().trim()) return;
+                                         const range = sel.getRangeAt(0);
+                                         const pre = document.createRange();
+                                         pre.selectNodeContents($refs.textoEdit);
+                                         pre.setEnd(range.startContainer, range.startOffset);
+                                         selInicio = pre.toString().length;
+                                         selTexto  = sel.toString();
+                                         selFin    = selInicio + selTexto.length;
+                                     ">{{ $this->textoPlano }}</pre>
                             </div>
+
                         </div>
                     </div>
 

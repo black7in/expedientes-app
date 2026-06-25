@@ -40,6 +40,12 @@ class Show extends Component
         $this->documento = Documento::with(['expediente', 'usuario'])->find($this->documento->id);
     }
 
+    #[Computed]
+    public function textoPlano(): string
+    {
+        return ($this->documento->texto_extraido ?? [])['texto_completo'] ?? '';
+    }
+
     // PB-9 — texto original con entidades resaltadas con <mark>
     #[Computed]
     public function textoResaltado(): string
@@ -100,6 +106,17 @@ class Show extends Component
         $rolesValidos = array_merge(self::ROLES_PER, ['OTRO']);
         if (!in_array($rol, $rolesValidos, true)) return;
         $this->_patchEntidad($entidadId, ['rol' => $rol]);
+    }
+
+    // Editar span de una entidad (redibujar límites desde selección del usuario)
+    public function editarSpan(string $entidadId, int $inicio, int $fin, string $texto): void
+    {
+        if ($inicio >= $fin || empty(trim($texto))) return;
+        $this->_patchEntidad($entidadId, [
+            'inicio' => $inicio,
+            'fin'    => $fin,
+            'texto'  => $texto,
+        ]);
     }
 
     // PB-12 — eliminar entidad (falso positivo)
